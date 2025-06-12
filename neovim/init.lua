@@ -18,16 +18,21 @@ vim.opt.rtp:prepend(lazypath)
 vim.g.mapleader = " " -- Using spacebar as the leader key
 
 -- Basic editor settings that make Neovim more familiar coming from VSCode
-vim.opt.number = true              -- Show line numbers (like VSCode's line numbers)
-vim.opt.relativenumber = false     -- Use absolute line numbers, not relative ones
-vim.opt.tabstop = 4               -- Tab width of 2 spaces
-vim.opt.shiftwidth = 4            -- Indentation width of 2 spaces  
+vim.opt.number = true             -- Show line numbers (like VSCode's line numbers)
+vim.opt.relativenumber = false    -- Use absolute line numbers, not relative ones
+vim.opt.tabstop = 2               -- Tab width of 2 spaces
+vim.opt.shiftwidth = 2            -- Indentation width of 2 spaces
 vim.opt.expandtab = true          -- Convert tabs to spaces
-vim.opt.wrap = true              -- Don't wrap long lines
+vim.opt.wrap = true               -- Don't wrap long lines
 vim.opt.ignorecase = true         -- Case-insensitive searching
 vim.opt.smartcase = true          -- But case-sensitive if search contains uppercase
 vim.opt.termguicolors = true      -- Enable full color support
 vim.opt.signcolumn = "yes"        -- Always show the sign column (like VSCode's gutter)
+vim.opt.clipboard = "unnamedplus" -- Use system clipboard
+
+-- Basic keymaps
+vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
+vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
 
 -- This is where we'll define our plugins
 -- Think of this as your "extensions" list
@@ -41,8 +46,8 @@ require("lazy").setup({
     },
     -- These are the keyboard shortcuts for the fuzzy finder
     keys = {
-      { "<C-p>", ":Files<CR>", desc = "Find files" },
-      { "<C-f>", ":Rg<CR>", desc = "Search in files" },
+      { "<C-p>",     ":Files<CR>",   desc = "Find files" },
+      { "<C-f>",     ":Rg<CR>",      desc = "Search in files" },
       { "<leader>b", ":Buffers<CR>", desc = "Find open buffers" },
     },
   },
@@ -50,8 +55,8 @@ require("lazy").setup({
   -- Molokai theme here
   {
     "tomasr/molokai", -- This is the GitHub repository for the molokai theme
-    name = "molokai",  -- Give it a friendly name for lazy.nvim to reference
-    priority = 1000,   -- Load this plugin early (themes should load before other plugins)
+    name = "molokai", -- Give it a friendly name for lazy.nvim to reference
+    priority = 1000,  -- Load this plugin early (themes should load before other plugins)
     config = function()
       -- This function runs after the plugin loads and activates the theme
       vim.cmd.colorscheme("molokai") -- This is equivalent to running :colorscheme molokai
@@ -87,11 +92,12 @@ require("lazy").setup({
         -- Install parsers for these languages automatically
         ensure_installed = { "lua", "python", "javascript", "typescript", "html", "css" },
         highlight = { enable = true }, -- Enable syntax highlighting
-        indent = { enable = true }, -- Enable smart indentation
+        indent = { enable = true },    -- Enable smart indentation
       })
     end,
   },
 
+  -- Mason for development tools
   {
     "williamboman/mason.nvim",
     config = function()
@@ -99,28 +105,85 @@ require("lazy").setup({
     end,
   },
 
+  -- Tool installer
   {
-    "williamboman/mason-lspconfig.nvim",
+    "WhoIsSethDaniel/mason-tool-installer.nvim",
     dependencies = { "williamboman/mason.nvim" },
     config = function()
-      require("mason-lspconfig").setup({
-        ensure_installed = { "ts_ls", "lua_ls" },
+      require("mason-tool-installer").setup({
+        ensure_installed = {
+          "typescript-language-server",
+          "lua-language-server",
+          "eslint-lsp",
+          "prettier",
+          "eslint_d",
+        },
       })
     end,
   },
 
+  -- Formatting
+  {
+    "stevearc/conform.nvim",
+    event = { "BufReadPre", "BufNewFile" },
+    config = function()
+      require("conform").setup({
+        formatters_by_ft = {
+          javascript = { "prettier" },
+          typescript = { "prettier" },
+          javascriptreact = { "prettier" },
+          typescriptreact = { "prettier" },
+          json = { "prettier" },
+          css = { "prettier" },
+          html = { "prettier" },
+          markdown = { "prettier" },
+        },
+        format_on_save = {
+          timeout_ms = 500,
+          lsp_fallback = true,
+        },
+      })
+    end,
+  },
+
+  -- Linting
+  {
+    "mfussenegger/nvim-lint",
+    event = { "BufReadPre", "BufNewFile" },
+    config = function()
+      local lint = require("lint")
+
+      lint.linters_by_ft = {
+        javascript = { "eslint_d" },
+        typescript = { "eslint_d" },
+        javascriptreact = { "eslint_d" },
+        typescriptreact = { "eslint_d" },
+      }
+
+      local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
+      vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+        group = lint_augroup,
+        callback = function()
+          lint.try_lint()
+        end,
+      })
+    end,
+  },
+
+
+  -- LSP
   {
     "neovim/nvim-lspconfig",
-    dependencies = { 
+    dependencies = {
       "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
+      "WhoIsSethDaniel/mason-tool-installer.nvim",
     },
     config = function()
       local lspconfig = require("lspconfig")
 
       -- Shared on_attach function to avoid repetition
       local function on_attach(client, bufnr)
-        local bufopts = { noremap=true, silent=true, buffer=bufnr }
+        local bufopts = { noremap = true, silent = true, buffer = bufnr }
 
         -- LSP keymaps
         vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, bufopts)
@@ -150,7 +213,7 @@ require("lazy").setup({
         settings = {
           Lua = {
             diagnostics = {
-              globals = {'vim'}
+              globals = { 'vim' }
             }
           }
         }
@@ -162,11 +225,11 @@ require("lazy").setup({
   {
     "hrsh7th/nvim-cmp",
     dependencies = {
-      "hrsh7th/cmp-nvim-lsp",    -- LSP source for nvim-cmp
-      "hrsh7th/cmp-buffer",      -- Buffer completions
-      "hrsh7th/cmp-path",        -- Path completions
-      "hrsh7th/cmp-cmdline",     -- Command line completions
-      "L3MON4D3/LuaSnip",       -- Snippet engine
+      "hrsh7th/cmp-nvim-lsp",     -- LSP source for nvim-cmp
+      "hrsh7th/cmp-buffer",       -- Buffer completions
+      "hrsh7th/cmp-path",         -- Path completions
+      "hrsh7th/cmp-cmdline",      -- Command line completions
+      "L3MON4D3/LuaSnip",         -- Snippet engine
       "saadparwaiz1/cmp_luasnip", -- Snippet completions
     },
     config = function()
@@ -205,18 +268,13 @@ require("lazy").setup({
           end, { 'i', 's' }),
         }),
         sources = cmp.config.sources({
-          { name = 'nvim_lsp' },    -- LSP completions (this is the important one!)
-          { name = 'luasnip' },     -- Snippet completions
+          { name = 'nvim_lsp' }, -- LSP completions (this is the important one!)
+          { name = 'luasnip' },  -- Snippet completions
         }, {
-          { name = 'buffer' },      -- Buffer completions
-          { name = 'path' },        -- Path completions
+          { name = 'buffer' },   -- Buffer completions
+          { name = 'path' },     -- Path completions
         })
       })
     end,
   },
 })
-
--- Basic keymaps that feel familiar from other editors
-vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
-vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
-
