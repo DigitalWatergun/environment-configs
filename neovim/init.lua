@@ -76,6 +76,10 @@ require("lazy").setup({
 				renderer = {
 					group_empty = true, -- Group empty folders
 				},
+				update_focused_file = {
+					enable = true,
+					update_root = true,
+				},
 			})
 		end,
 		keys = {
