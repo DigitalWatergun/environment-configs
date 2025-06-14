@@ -29,10 +29,20 @@ vim.opt.smartcase = true -- But case-sensitive if search contains uppercase
 vim.opt.termguicolors = true -- Enable full color support
 vim.opt.signcolumn = "yes" -- Always show the sign column (like VSCode's gutter)
 vim.opt.clipboard = "unnamedplus" -- Use system clipboard
+vim.opt.splitright = true -- vertical splits appear on the RIGHT
+vim.opt.splitbelow = true -- horizontal splits appear BELOW (optional)
+vim.opt.equalalways = true -- equalize whenever you open/close a split
+vim.opt.eadirection = "both" -- adjust both height and width
 
 -- Basic keymaps
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
+
+-- Auto-equalize all splits whenever the UI is resized
+vim.api.nvim_create_autocmd("VimResized", {
+	pattern = "*",
+	command = "tabdo wincmd =", -- use just "wincmd =" if you don't use tabs
+})
 
 -- This is where we'll define our plugins
 -- Think of this as your "extensions" list
@@ -191,21 +201,21 @@ require("lazy").setup({
 			local function on_attach(client, bufnr)
 				local bufopts = { noremap = true, silent = true, buffer = bufnr }
 
-				-- LSP keymaps
-				vim.keymap.set("n", "gD", vim.lsp.buf.declaration, bufopts)
-				vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts)
-				vim.keymap.set("n", "K", vim.lsp.buf.hover, bufopts)
-				vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts)
-				vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, bufopts)
-				vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, bufopts)
-				vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, bufopts)
-				vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts)
+				-- LSP-related keymaps for navigating and interacting with language server features
+				vim.keymap.set("n", "gD", vim.lsp.buf.declaration, bufopts) -- Go to declaration of symbol
+				vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts) -- Go to definition of symbol
+				vim.keymap.set("n", "K", vim.lsp.buf.hover, bufopts) -- Show hover information (documentation)
+				vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts) -- Go to implementation of symbol
+				vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, bufopts) -- Show function signature help
+				vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, bufopts) -- Rename symbol under cursor
+				vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, bufopts) -- Trigger code action menu
+				vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts) -- Show references to symbol
 
-				-- Diagnostic keymaps
-				vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, bufopts)
-				vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, bufopts)
-				vim.keymap.set("n", "]d", vim.diagnostic.goto_next, bufopts)
-				vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, bufopts)
+				-- Diagnostic keymaps for working with errors, warnings, hints, etc.
+				vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, bufopts) -- Open floating window with diagnostic info
+				vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, bufopts) -- Go to previous diagnostic in buffer
+				vim.keymap.set("n", "]d", vim.diagnostic.goto_next, bufopts) -- Go to next diagnostic in buffer
+				vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, bufopts) -- Populate location list with diagnostics
 			end
 
 			-- TypeScript setup
@@ -282,5 +292,15 @@ require("lazy").setup({
 				}),
 			})
 		end,
+	},
+
+	-- Autopairs
+	{
+		"windwp/nvim-autopairs",
+		event = "InsertEnter", -- loads only when you start typing
+		opts = { -- pass options here or omit for defaults
+			fast_wrap = {}, -- Alt-e surrounds the word under cursor
+			disable_filetype = { "TelescopePrompt", "vim" },
+		},
 	},
 })
