@@ -46,17 +46,14 @@ vim.api.nvim_create_autocmd("VimResized", {
 	command = "tabdo wincmd =", -- use just "wincmd =" if you don't use tabs
 })
 
--- This is where we'll define our plugins
--- Think of this as your "extensions" list
+-- This is where we'll define our plugins. Think of this as your "extensions" list
 require("lazy").setup({
 	-- Fuzzy file finder - equivalent to VSCode's Ctrl+P
 	{
 		"junegunn/fzf.vim",
 		dependencies = {
-			-- This installs the core fzf binary that the vim plugin uses
 			{ "junegunn/fzf", build = ":call fzf#install()" },
 		},
-		-- These are the keyboard shortcuts for the fuzzy finder
 		keys = {
 			{ "<C-p>", ":Files<CR>", desc = "Find files" },
 			{ "<C-f>", ":Rg<CR>", desc = "Search in files" },
@@ -78,15 +75,14 @@ require("lazy").setup({
 	-- File explorer - like VSCode's file sidebar
 	{
 		"nvim-tree/nvim-tree.lua",
-		dependencies = { "nvim-tree/nvim-web-devicons" }, -- Pretty file icons
+		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			-- This function runs after the plugin is loaded and sets it up
 			require("nvim-tree").setup({
 				view = {
-					width = 30, -- Sidebar width
+					width = 40, -- Sidebar width
 				},
 				renderer = {
-					group_empty = true, -- Group empty folders
+					group_empty = true,
 				},
 				update_focused_file = {
 					enable = true,
