@@ -37,6 +37,7 @@ vim.opt.eadirection = "both" -- adjust both height and width
 -- Basic keymaps
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
+vim.keymap.set("n", "<leader>tt", ":belowright split | terminal<CR>", { desc = "Open terminal in split" })
 
 -- Auto-equalize all splits whenever the UI is resized
 vim.api.nvim_create_autocmd("VimResized", {
@@ -104,7 +105,17 @@ require("lazy").setup({
 		config = function()
 			require("nvim-treesitter.configs").setup({
 				-- Install parsers for these languages automatically
-				ensure_installed = { "lua", "python", "javascript", "typescript", "html", "css" },
+				ensure_installed = {
+					"lua",
+					"python",
+					"javascript",
+					"typescript",
+					"html",
+					"css",
+					"go",
+					"gomod",
+					"gosum",
+				},
 				highlight = { enable = true }, -- Enable syntax highlighting
 				indent = { enable = true }, -- Enable smart indentation
 			})
@@ -119,7 +130,7 @@ require("lazy").setup({
 		end,
 	},
 
-	-- Tool installer
+	-- Mason Tool installer
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		dependencies = { "williamboman/mason.nvim" },
@@ -132,6 +143,10 @@ require("lazy").setup({
 					"prettier",
 					"eslint_d",
 					"stylua",
+					"gopls",
+					"goimports",
+					"gofumpt",
+					"golangci-lint",
 				},
 			})
 		end,
@@ -153,6 +168,7 @@ require("lazy").setup({
 					html = { "prettier" },
 					markdown = { "prettier" },
 					lua = { "stylua" },
+					go = { "goimports" },
 				},
 				format_after_save = {
 					timeout_ms = 500,
@@ -175,6 +191,7 @@ require("lazy").setup({
 				typescript = { "eslint_d" },
 				javascriptreact = { "eslint_d" },
 				typescriptreact = { "eslint_d" },
+				go = { "golangcilint" },
 			}
 
 			local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
@@ -231,6 +248,16 @@ require("lazy").setup({
 						diagnostics = {
 							globals = { "vim" },
 						},
+					},
+				},
+			})
+
+			lspconfig.gopls.setup({
+				on_attach = on_attach,
+				settings = {
+					gopls = {
+						analyses = { unusedparams = true, shadow = true },
+						staticcheck = true,
 					},
 				},
 			})
