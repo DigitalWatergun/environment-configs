@@ -38,6 +38,7 @@ vim.opt.eadirection = "both" -- adjust both height and width
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
 vim.keymap.set("n", "<leader>tt", ":belowright split | terminal<CR>", { desc = "Open terminal in split" })
+vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, desc = "Terminal → Normal mode" })
 
 -- Auto-equalize all splits whenever the UI is resized
 vim.api.nvim_create_autocmd("VimResized", {
