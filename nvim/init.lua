@@ -187,6 +187,24 @@ require("lazy").setup({
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			local lint = require("lint")
+			local util = require("lspconfig.util")
+			local eslint = lint.linters.eslint_d
+
+			eslint.cwd = function(bufnr)
+				return util.root_pattern(
+					".eslintrc.js",
+					".eslintrc.cjs",
+					".eslintrc.json",
+					"eslint.config.js",
+					"package.json"
+				)(vim.api.nvim_buf_get_name(bufnr)) or vim.fn.getcwd()
+			end
+
+			-- Skip eslint_d completely if no config is found
+			eslint.condition = function(ctx)
+				return vim.fn.filereadable(ctx.cwd .. "/package.json") == 1
+					or vim.fn.glob(ctx.cwd .. "/.eslintrc.*") ~= ""
+			end
 
 			lint.linters_by_ft = {
 				javascript = { "eslint_d" },
