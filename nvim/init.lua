@@ -53,16 +53,128 @@ vim.api.nvim_create_autocmd("VimResized", {
 
 -- This is where we'll define our plugins. Think of this as your "extensions" list
 require("lazy").setup({
-	-- Fuzzy file finder - equivalent to VSCode's Ctrl+P
 	{
-		"junegunn/fzf.vim",
+		"nvim-telescope/telescope.nvim",
 		dependencies = {
-			{ "junegunn/fzf", build = ":call fzf#install()" },
+			"nvim-lua/plenary.nvim",
+			-- This native extension makes sorting much faster
+			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
 		},
+		config = function()
+			local telescope = require("telescope")
+			local actions = require("telescope.actions")
+
+			telescope.setup({
+				defaults = {
+					cache_picker = {
+						num_pickers = 5,
+					},
+					dynamic_preview_title = true,
+
+					file_ignore_patterns = {
+						"node_modules/.*",
+						"%.git/.*",
+						"%.DS_Store",
+						"package%-lock%.json",
+						"yarn%.lock",
+						"target/.*",
+						"build/.*",
+						"dist/.*",
+						"%.o$",
+						"%.a$",
+						"%.out$",
+						"%.class$",
+						"%.pdf$",
+						"%.mkv$",
+						"%.mp4$",
+						"%.zip$",
+					},
+
+					layout_config = {
+						horizontal = {
+							prompt_position = "top",
+							preview_width = 0.55,
+							results_width = 0.8,
+						},
+						vertical = {
+							mirror = false,
+						},
+						width = 0.87,
+						height = 0.80,
+						preview_cutoff = 120,
+					},
+
+					mappings = {
+						i = {
+							["<C-j>"] = actions.move_selection_next,
+							["<C-k>"] = actions.move_selection_previous,
+							["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+							["<Esc>"] = actions.close,
+							["<C-u>"] = false,
+						},
+						n = {
+							["q"] = actions.close,
+							["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+						},
+					},
+
+					vimgrep_arguments = {
+						"rg",
+						"--color=never",
+						"--no-heading",
+						"--with-filename",
+						"--line-number",
+						"--column",
+						"--smart-case",
+						"--hidden", -- Search hidden files
+						"--glob=!.git/", -- But ignore .git
+					},
+				},
+
+				pickers = {
+					find_files = {
+						-- Use fd if available (faster than find)
+						find_command = { "rg", "--files", "--hidden", "--glob", "!.git/*" },
+						-- Alternative if you don't have rg:
+						-- find_command = { "fd", "--type", "f", "--hidden", "--exclude", ".git" },
+					},
+
+					live_grep = {
+						additional_args = function()
+							return { "--hidden", "--glob=!.git/" }
+						end,
+					},
+
+					buffers = {
+						show_all_buffers = true,
+						sort_lastused = true,
+						theme = "dropdown",
+						previewer = false,
+					},
+				},
+
+				extensions = {
+					fzf = {
+						fuzzy = true,
+						override_generic_sorter = true,
+						override_file_sorter = true,
+						case_mode = "smart_case",
+					},
+				},
+			})
+
+			-- Load the fzf extension for much better performance
+			telescope.load_extension("fzf")
+		end,
 		keys = {
-			{ "<C-p>", ":Files<CR>", desc = "Find files" },
-			{ "<C-f>", ":Rg<CR>", desc = "Search in files" },
-			{ "<leader>b", ":Buffers<CR>", desc = "Find open buffers" },
+			{ "<C-p>", "<cmd>Telescope find_files<cr>", desc = "Find files" },
+			{ "<C-f>", "<cmd>Telescope live_grep<cr>", desc = "Live grep search" },
+			{ "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "Find buffers" },
+			{ "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Help tags" },
+			{ "<leader>fw", "<cmd>Telescope grep_string<cr>", desc = "Find word under cursor" },
+			{ "<leader>fr", "<cmd>Telescope oldfiles<cr>", desc = "Recent files" },
+			{ "<leader>fc", "<cmd>Telescope git_commits<cr>", desc = "Git commits" },
+			{ "<leader>fs", "<cmd>Telescope git_status<cr>", desc = "Git status" },
 		},
 	},
 
