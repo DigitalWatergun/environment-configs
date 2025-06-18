@@ -44,6 +44,8 @@ vim.keymap.set(
 	{ desc = "Open terminal in split with 20-lines height" }
 )
 vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, desc = "Terminal → Normal mode" })
+vim.keymap.set("v", "<Tab>", ">gv", { noremap = true, silent = true, desc = "Indent and reselect" })
+vim.keymap.set("v", "<S-Tab>", "<gv", { noremap = true, silent = true, desc = "Unindent and reselect" })
 
 -- This is where we'll define our plugins. Think of this as your "extensions" list
 require("lazy").setup({
