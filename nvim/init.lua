@@ -45,12 +45,6 @@ vim.keymap.set(
 )
 vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, desc = "Terminal → Normal mode" })
 
--- Auto-equalize all splits whenever the UI is resized
-vim.api.nvim_create_autocmd("VimResized", {
-	pattern = "*",
-	command = "tabdo wincmd =", -- use just "wincmd =" if you don't use tabs
-})
-
 -- This is where we'll define our plugins. Think of this as your "extensions" list
 require("lazy").setup({
 	{
@@ -412,6 +406,9 @@ require("lazy").setup({
 			local luasnip = require("luasnip")
 
 			cmp.setup({
+				completion = {
+					completeopt = "menu,menuone,noselect",
+				},
 				snippet = {
 					expand = function(args)
 						luasnip.lsp_expand(args.body)
@@ -422,7 +419,7 @@ require("lazy").setup({
 					["<C-f>"] = cmp.mapping.scroll_docs(4),
 					["<C-Space>"] = cmp.mapping.complete(),
 					["<C-e>"] = cmp.mapping.abort(),
-					["<CR>"] = cmp.mapping.confirm({ select = true }),
+					["<CR>"] = cmp.mapping.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace }),
 					["<Tab>"] = cmp.mapping(function(fallback)
 						if cmp.visible() then
 							cmp.select_next_item()
