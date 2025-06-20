@@ -201,6 +201,20 @@ require("lazy").setup({
 					enable = true,
 					update_root = true,
 				},
+				diagnostics = {
+					-- turn it on
+					enable = true,
+					-- show diagnostics on directories too?
+					show_on_dirs = true,
+					-- debounce diagnostic updates (ms)
+					debounce_delay = 50,
+					icons = {
+						hint = "",
+						info = "",
+						warning = "",
+						error = "",
+					},
+				},
 			})
 		end,
 		keys = {
@@ -380,6 +394,7 @@ require("lazy").setup({
 				},
 			})
 
+			-- Golang setup
 			lspconfig.gopls.setup({
 				on_attach = on_attach,
 				settings = {
@@ -388,6 +403,27 @@ require("lazy").setup({
 						staticcheck = true,
 					},
 				},
+			})
+
+			-- ESLint setup. Need to run "npm install -g vscode-langservers-extracted"
+			lspconfig.eslint.setup({
+				on_attach = on_attach,
+				settings = {
+					eslint = {
+						enable = true,
+						packageManager = "npm",
+						autoFixOnSave = true,
+					},
+				},
+				root_dir = function(fname)
+					return require("lspconfig.util").root_pattern(
+						".eslintrc.js",
+						".eslintrc.cjs",
+						".eslintrc.json",
+						"eslint.config.js",
+						"package.json"
+					)(fname)
+				end,
 			})
 		end,
 	},
