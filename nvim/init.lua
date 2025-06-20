@@ -196,17 +196,27 @@ require("lazy").setup({
 				},
 				renderer = {
 					group_empty = true,
+					icons = {
+						show = {
+							git = true,
+							folder = true,
+							file = true,
+							folder_arrow = true,
+						},
+					},
 				},
 				update_focused_file = {
 					enable = true,
 					update_root = true,
 				},
-				diagnostics = {
-					-- turn it on
+				git = {
 					enable = true,
-					-- show diagnostics on directories too?
+					ignore = false,
+					timeout = 500,
+				},
+				diagnostics = {
+					enable = true,
 					show_on_dirs = true,
-					-- debounce diagnostic updates (ms)
 					debounce_delay = 50,
 					icons = {
 						hint = "",
@@ -342,6 +352,24 @@ require("lazy").setup({
 				callback = function()
 					lint.try_lint()
 				end,
+			})
+		end,
+	},
+
+	-- Git signs in the gutter (added/changed/removed lines)
+	{
+		"lewis6991/gitsigns.nvim",
+		event = { "BufReadPre", "BufNewFile" },
+		config = function()
+			require("gitsigns").setup({
+				signs = {
+					add = { text = "▎" },
+					change = { text = "▎" },
+					delete = { text = "契" },
+					topdelete = { text = "契" },
+					changedelete = { text = "▎" },
+				},
+				current_line_blame = false, -- disable inline blame by default
 			})
 		end,
 	},
