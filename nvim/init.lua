@@ -226,6 +226,26 @@ require("lazy").setup({
 					},
 				},
 			})
+
+			vim.api.nvim_create_augroup("NvimTreeAutoRefresh", { clear = true })
+
+			vim.api.nvim_create_autocmd("FocusGained", {
+				group = "NvimTreeAutoRefresh",
+				callback = function()
+					if require("nvim-tree.view").is_visible() then
+						vim.cmd("NvimTreeRefresh")
+					end
+				end,
+			})
+
+			vim.api.nvim_create_autocmd("BufWritePost", {
+				group = "NvimTreeAutoRefresh",
+				callback = function()
+					if require("nvim-tree.view").is_visible() then
+						vim.cmd("NvimTreeRefresh")
+					end
+				end,
+			})
 		end,
 		keys = {
 			{ "<leader>e", ":NvimTreeToggle<CR>", desc = "Toggle file explorer" },
