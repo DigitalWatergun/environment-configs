@@ -24,15 +24,36 @@ vim.opt.tabstop = 2 -- Tab width of 2 spaces
 vim.opt.shiftwidth = 2 -- Indentation width of 2 spaces
 vim.opt.expandtab = true -- Convert tabs to spaces
 vim.opt.wrap = true -- Don't wrap long lines
+vim.opt.wrapscan = true -- Wrapp search back to top of file
+vim.opt.incsearch = true -- Show matches as you type
 vim.opt.ignorecase = true -- Case-insensitive searching
-vim.opt.smartcase = true -- But case-sensitive if search contains uppercase
+vim.opt.smartcase = false -- Case-sensitive if search contains uppercase
 vim.opt.termguicolors = true -- Enable full color support
 vim.opt.signcolumn = "yes" -- Always show the sign column (like VSCode's gutter)
 vim.opt.clipboard = "unnamedplus" -- Use system clipboard
-vim.opt.splitright = true -- vertical splits appear on the RIGHT
-vim.opt.splitbelow = true -- horizontal splits appear BELOW (optional)
-vim.opt.equalalways = true -- equalize whenever you open/close a split
-vim.opt.eadirection = "both" -- adjust both height and width
+vim.opt.splitright = true -- Vertical splits appear on the RIGHT
+vim.opt.splitbelow = true -- Horizontal splits appear BELOW (optional)
+vim.opt.equalalways = true -- Equalize whenever you open/close a split
+vim.opt.eadirection = "both" -- Adjust both height and width
+vim.opt.autoread = true -- Autoreload buffers
+
+-- Autoreload buffer and silent warnings
+local auto_read_grp = vim.api.nvim_create_augroup("AutoRead", { clear = true })
+
+vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGained", "BufWritePost" }, {
+	group = auto_read_grp,
+	callback = function()
+		vim.cmd("checktime")
+	end,
+})
+
+vim.api.nvim_create_autocmd("FileChangedShellPost", {
+	group = auto_read_grp,
+	pattern = "*",
+	callback = function()
+		vim.cmd("echohl WarningMsg | echo 'File changed on disk, reloaded.' | echohl None")
+	end,
+})
 
 -- Basic keymaps
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
@@ -47,7 +68,7 @@ vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, de
 vim.keymap.set("v", "<Tab>", ">gv", { noremap = true, silent = true, desc = "Indent and reselect" })
 vim.keymap.set("v", "<S-Tab>", "<gv", { noremap = true, silent = true, desc = "Unindent and reselect" })
 
--- This is where we'll define our plugins. Think of this as your "extensions" list
+-- Plugin definitions
 require("lazy").setup({
 	{
 		"nvim-telescope/telescope.nvim",
