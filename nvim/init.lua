@@ -36,19 +36,34 @@ vim.opt.splitbelow = true -- Horizontal splits appear BELOW (optional)
 vim.opt.equalalways = true -- Equalize whenever you open/close a split
 vim.opt.eadirection = "both" -- Adjust both height and width
 vim.opt.autoread = true -- Autoreload buffers
+vim.opt.updatetime = 300 -- Make CursorHold and friends fire more responsively
 
--- Autoreload buffer and silent warnings
-local auto_read_grp = vim.api.nvim_create_augroup("AutoRead", { clear = true })
+-- Auto-refresh everything in one place
+local auto_refresh = vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
 
+-- On idle/focus/write/etc: stat files, refresh diagnostics, git signs, and dead LSPs
 vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGained", "BufWritePost" }, {
-	group = auto_read_grp,
+	group = auto_refresh,
 	callback = function()
+		-- 1) Re-stat files on disk
 		vim.cmd("checktime")
+		-- 2) Clear & re-publish diagnostics
+		vim.diagnostic.reset()
+		vim.lsp.buf.request(0, "textDocument/publishDiagnostics", vim.lsp.util.make_position_params(), nil)
+		-- 3) Refresh git gutter signs
+		pcall(vim.cmd, "Gitsigns refresh")
+		-- 4) Restart any LSP client that’s stopped
+		for _, client in pairs(vim.lsp.get_active_clients()) do
+			if client.is_stopped and client:is_stopped() then
+				client:start()
+			end
+		end
 	end,
 })
 
+-- If a file changed on disk via an external shell command, show a warning
 vim.api.nvim_create_autocmd("FileChangedShellPost", {
-	group = auto_read_grp,
+	group = auto_refresh,
 	pattern = "*",
 	callback = function()
 		vim.cmd("echohl WarningMsg | echo 'File changed on disk, reloaded.' | echohl None")
@@ -426,7 +441,7 @@ require("lazy").setup({
 			local lspconfig = require("lspconfig")
 
 			-- Shared on_attach function to avoid repetition
-			local function on_attach(client, bufnr)
+			local function on_attach(_, bufnr)
 				local bufopts = { noremap = true, silent = true, buffer = bufnr }
 
 				-- LSP-related keymaps for navigating and interacting with language server features
