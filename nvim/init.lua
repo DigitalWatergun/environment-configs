@@ -52,9 +52,10 @@ vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGai
 		pcall(vim.cmd, "Gitsigns refresh")
 
 		-- 3) Restart any LSP client that’s stopped
-		for _, client in pairs(vim.lsp.get_clients()) do
-			if client.is_stopped and client:is_stopped() then
-				client:start()
+		for _, client in ipairs(vim.lsp.get_clients()) do
+			-- only try to restart if both the check and the start method are present
+			if type(client.is_stopped) == "function" and client:is_stopped() and type(client.start) == "function" then
+				pcall(client.start, client)
 			end
 		end
 	end,
