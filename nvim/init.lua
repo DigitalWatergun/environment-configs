@@ -38,38 +38,6 @@ vim.opt.eadirection = "both" -- Adjust both height and width
 vim.opt.autoread = true -- Autoreload buffers
 vim.opt.updatetime = 300 -- Make CursorHold and friends fire more responsively
 
--- Auto-refresh everything in one place
-local auto_refresh = vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
-
--- On idle/focus/write/etc: stat files, refresh git signs, and restart dead LSPs
-vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGained", "BufWritePost" }, {
-	group = auto_refresh,
-	callback = function()
-		-- 1) Re-stat files on disk
-		pcall(vim.cmd, "silent! checktime")
-
-		-- 2) Refresh git gutter signs
-		pcall(vim.cmd, "Gitsigns refresh")
-
-		-- 3) Restart any LSP client that’s stopped
-		for _, client in ipairs(vim.lsp.get_clients()) do
-			-- only try to restart if both the check and the start method are present
-			if type(client.is_stopped) == "function" and client:is_stopped() and type(client.start) == "function" then
-				pcall(client.start, client)
-			end
-		end
-	end,
-})
-
--- If a file changed on disk via an external shell command, show a warning
-vim.api.nvim_create_autocmd("FileChangedShellPost", {
-	group = auto_refresh,
-	pattern = "*",
-	callback = function()
-		vim.cmd("echohl WarningMsg | echo 'File changed on disk, reloaded.' | echohl None")
-	end,
-})
-
 -- Basic keymaps
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
@@ -226,10 +194,10 @@ require("lazy").setup({
 		"nvim-tree/nvim-tree.lua",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
+			local api = require("nvim-tree.api")
+
 			require("nvim-tree").setup({
-				view = {
-					width = 40, -- Sidebar width
-				},
+				view = { width = 40 },
 				renderer = {
 					group_empty = true,
 					icons = {
@@ -261,24 +229,53 @@ require("lazy").setup({
 						error = "",
 					},
 				},
-			})
 
-			vim.api.nvim_create_augroup("NvimTreeAutoRefresh", { clear = true })
-
-			vim.api.nvim_create_autocmd("FocusGained", {
-				group = "NvimTreeAutoRefresh",
-				callback = function()
-					if require("nvim-tree.view").is_visible() then
-						vim.cmd("NvimTreeRefresh")
+				-- on_attach runs when the tree buffer is first initialized
+				on_attach = function(bufnr)
+					local function buf_opts(desc)
+						return { buffer = bufnr, noremap = true, silent = true, desc = desc }
 					end
+
+					-- helper: save the previously active buffer if it was modified
+					local function save_prev()
+						if vim.bo.modifiable and vim.bo.modified then
+							vim.cmd("silent! update")
+						end
+					end
+
+					-- remap <CR> to save-then-open
+					vim.keymap.set("n", "<CR>", function()
+						save_prev()
+						api.node.open.edit()
+					end, buf_opts("Open file"))
+
+					-- also map "o" and double-click
+					vim.keymap.set("n", "o", function()
+						save_prev()
+						api.node.open.edit()
+					end, buf_opts("Open file"))
+					vim.keymap.set("n", "<2-LeftMouse>", function()
+						save_prev()
+						api.node.open.edit()
+					end, buf_opts("Open file"))
 				end,
 			})
 
+			-- your existing auto-refresh logic for the tree view
+			vim.api.nvim_create_augroup("NvimTreeAutoRefresh", { clear = true })
+			vim.api.nvim_create_autocmd("FocusGained", {
+				group = "NvimTreeAutoRefresh",
+				callback = function()
+					if api.tree.is_visible() then
+						api.tree.reload()
+					end
+				end,
+			})
 			vim.api.nvim_create_autocmd("BufWritePost", {
 				group = "NvimTreeAutoRefresh",
 				callback = function()
-					if require("nvim-tree.view").is_visible() then
-						vim.cmd("NvimTreeRefresh")
+					if api.tree.is_visible() then
+						api.tree.reload()
 					end
 				end,
 			})
@@ -582,3 +579,62 @@ require("lazy").setup({
 		},
 	},
 })
+
+-- Auto-refresh everything in one place
+local auto_refresh = vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
+
+-- On idle/focus/write/etc: stat files, refresh git signs, and restart dead LSPs
+vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGained", "BufWritePost" }, {
+	group = auto_refresh,
+	callback = function()
+		-- 1) Re-stat files on disk
+		pcall(vim.cmd, "silent! checktime")
+
+		-- 2) Refresh git gutter signs
+		pcall(vim.cmd, "Gitsigns refresh")
+
+		-- 3) Restart any LSP client that’s stopped
+		for _, client in ipairs(vim.lsp.get_clients()) do
+			-- only try to restart if both the check and the start method are present
+			if type(client.is_stopped) == "function" and client:is_stopped() and type(client.start) == "function" then
+				pcall(client.start, client)
+			end
+		end
+	end,
+})
+
+-- If a file changed on disk via an external shell command, show a warning
+vim.api.nvim_create_autocmd("FileChangedShellPost", {
+	group = auto_refresh,
+	pattern = "*",
+	callback = function()
+		vim.cmd("echohl WarningMsg | echo 'File changed on disk, reloaded.' | echohl None")
+	end,
+})
+
+-- Helper to save the current buffer if it's dirty
+local function save_current()
+	if vim.bo.modifiable and vim.bo.modified then
+		vim.cmd("silent! update") -- :update writes if modified, firing format-on-save
+	end
+end
+
+-- 1) Wrap split-motion keys (<C-w>h/j/k/l)
+for _, d in ipairs({ "h", "j", "k", "l" }) do
+	vim.keymap.set("n", "<C-w>" .. d, function()
+		save_current()
+		vim.cmd("wincmd " .. d)
+	end, { noremap = true, silent = true })
+end
+
+-- 2) Wrap Telescope shortcuts (use built-in functions, not raw :Telescope commands)
+local tb = require("telescope.builtin")
+vim.keymap.set("n", "<C-p>", function()
+	save_current()
+	tb.find_files()
+end, { noremap = true, silent = true })
+
+vim.keymap.set("n", "<C-f>", function()
+	save_current()
+	tb.live_grep()
+end, { noremap = true, silent = true })
