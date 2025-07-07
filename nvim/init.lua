@@ -232,6 +232,10 @@ require("lazy").setup({
 
 				-- on_attach runs when the tree buffer is first initialized
 				on_attach = function(bufnr)
+					local default_on_attach = require("nvim-tree.api").config.mappings.default_on_attach
+
+					default_on_attach(bufnr)
+
 					local function buf_opts(desc)
 						return { buffer = bufnr, noremap = true, silent = true, desc = desc }
 					end
@@ -243,13 +247,11 @@ require("lazy").setup({
 						end
 					end
 
-					-- remap <CR> to save-then-open
+					-- remap <CR>, o, <2-LeftMouse> to save-first, then open
 					vim.keymap.set("n", "<CR>", function()
 						save_prev()
 						api.node.open.edit()
 					end, buf_opts("Open file"))
-
-					-- also map "o" and double-click
 					vim.keymap.set("n", "o", function()
 						save_prev()
 						api.node.open.edit()
@@ -258,6 +260,20 @@ require("lazy").setup({
 						save_prev()
 						api.node.open.edit()
 					end, buf_opts("Open file"))
+
+					vim.keymap.set("n", "a", function() -- override 'a' to save then create file
+						save_prev()
+						api.fs.create()
+					end, buf_opts("Add file"))
+
+					vim.keymap.set("n", "A", function() -- override 'A' to save then create directory
+						save_prev()
+						api.fs.create({ dir = true })
+					end, buf_opts("Add directory"))
+					vim.keymap.set("n", "d", function() -- override 'd' to save then delete
+						save_prev()
+						api.fs.remove()
+					end, buf_opts("Delete"))
 				end,
 			})
 
