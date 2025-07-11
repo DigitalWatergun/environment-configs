@@ -37,6 +37,9 @@ vim.opt.equalalways = true -- Equalize whenever you open/close a split
 vim.opt.eadirection = "both" -- Adjust both height and width
 vim.opt.autoread = true -- Autoreload buffers
 vim.opt.updatetime = 300 -- Make CursorHold and friends fire more responsively
+vim.opt.hidden = true -- "Hide" (keep in memory) modified buffers instead of blockiing
+vim.opt.autowrite = true -- Write current buffer if modified commands like :edit, :make, :checktime
+vim.opt.autowriteall = true -- Write all modified buffers before :next, :rewind, :last, external shell commands, etc.
 
 -- Basic keymaps
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
@@ -301,6 +304,59 @@ require("lazy").setup({
 		},
 	},
 
+	-- Oil plugin for file management / view / explorer
+	{
+		"stevearc/oil.nvim",
+		dependencies = { "nvim-tree/nvim-web-devicons" },
+		config = function()
+			local oil = require("oil")
+			local columns = require("oil.columns")
+
+			oil.setup({
+				-- pick exactly the columns you want to see:
+				columns = {
+					columns.icon, -- file/folder icon
+					columns.permissions, -- unix perms
+					columns.size, -- file size
+					columns.mtime, -- last-modified timestamp
+					columns.git_status, -- ▶ staged/unstaged/untracked marks
+					columns.diagnostics, -- ▶ LSP error/warning/hint counts
+				},
+				-- allow two sign-columns (index + worktree / diagnostics)
+				win_options = {
+					-- two sign-columns for index+worktree,
+					-- plus enable absolute line-numbers
+					signcolumn = "yes:2",
+					number = true,
+					relativenumber = false,
+				},
+
+				experimental_watch_for_changes = true,
+
+				view_options = {
+					show_hidden = true,
+				},
+			})
+		end,
+		keys = {
+			{
+				"<leader>o",
+				function()
+					require("oil").open_float()
+				end,
+				desc = "Open oil.nvim file browser",
+			},
+		},
+	},
+
+	{
+		"refractalize/oil-git-status.nvim",
+		dependencies = { "stevearc/oil.nvim" },
+		config = function()
+			require("oil-git-status").setup({})
+		end,
+	},
+
 	-- Syntax highlighting - makes code colorful and properly formatted
 	{
 		"nvim-treesitter/nvim-treesitter",
@@ -318,6 +374,7 @@ require("lazy").setup({
 					"go",
 					"gomod",
 					"gosum",
+					"php",
 				},
 				highlight = { enable = true }, -- Enable syntax highlighting
 				indent = { enable = true }, -- Enable smart indentation
@@ -350,6 +407,13 @@ require("lazy").setup({
 					"goimports",
 					"gofumpt",
 					"golangci-lint",
+					"intelephense",
+					"php-cs-fixer",
+					"phpstan",
+					"pyright",
+					"black",
+					"isort",
+					"flake8",
 				},
 			})
 		end,
@@ -360,7 +424,18 @@ require("lazy").setup({
 		"stevearc/conform.nvim",
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
-			require("conform").setup({
+			local conform = require("conform")
+
+			-- helper to detect a Python venv and prepend its bin/ to PATH
+			local function venv_path()
+				local venv = os.getenv("VIRTUAL_ENV")
+				if venv and #venv > 0 then
+					return venv .. "/bin:" .. vim.env.PATH
+				end
+				return vim.env.PATH
+			end
+
+			conform.setup({
 				formatters_by_ft = {
 					javascript = { "prettier" },
 					typescript = { "prettier" },
@@ -372,6 +447,25 @@ require("lazy").setup({
 					markdown = { "prettier" },
 					lua = { "stylua" },
 					go = { "goimports" },
+					php = {
+						{
+							exe = "php-cs-fixer",
+							args = { "fix", "--quiet", "$FILENAME" },
+							env = { PATH = (vim.fn.getcwd() .. "/vendor/bin:") .. vim.env.PATH },
+						},
+					},
+					python = {
+						{
+							exe = "isort",
+							args = { "--profile", "black", "$FILENAME" },
+							env = { PATH = venv_path() },
+						},
+						{
+							exe = "black",
+							args = { "--quiet", "$FILENAME" },
+							env = { PATH = venv_path() },
+						},
+					},
 				},
 				format_after_save = {
 					timeout_ms = 500,
@@ -407,12 +501,28 @@ require("lazy").setup({
 					or vim.fn.glob(ctx.cwd .. "/.eslintrc.*") ~= ""
 			end
 
+			lint.linters.phpstan = {
+				cmd = "phpstan",
+				args = { "analyse", "--error-format", "raw", "$FILENAME" },
+				stream = "stdout",
+				ignore_exitcode = true,
+			}
+
+			lint.linters.flake8 = {
+				cmd = "flake8",
+				args = { "--format=default", "$FILENAME" },
+				stream = "stdout",
+				ignore_exitcode = true,
+			}
+
 			lint.linters_by_ft = {
 				javascript = { "eslint_d" },
 				typescript = { "eslint_d" },
 				javascriptreact = { "eslint_d" },
 				typescriptreact = { "eslint_d" },
 				go = { "golangcilint" },
+				php = { "phpstan" },
+				python = { "flake8" },
 			}
 
 			local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
@@ -522,6 +632,32 @@ require("lazy").setup({
 					)(fname)
 				end,
 			})
+
+			lspconfig.pyright.setup({
+				on_attach = on_attach, -- reuse your shared on_attach
+				settings = {
+					python = {
+						analysis = {
+							typeCheckingMode = "basic", -- or "strict"
+							autoSearchPaths = true,
+							useLibraryCodeForTypes = true,
+						},
+					},
+				},
+			})
+
+			lspconfig.intelephense.setup({
+				on_attach = on_attach, -- reuse your shared on_attach
+				settings = {
+					intelephense = {
+						files = { maxSize = 5000000 }, -- Allow larger files if needed
+						environment = {
+							includePaths = { "vendor/" }, -- Composer dependencies
+						},
+						-- licenceKey = "your-key-here", -- uncomment if you have a paid licence
+					},
+				},
+			})
 		end,
 	},
 
@@ -596,6 +732,15 @@ require("lazy").setup({
 	},
 })
 
+-- Overwrite tab space for Python
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = "python",
+	callback = function()
+		vim.bo.shiftwidth = 4
+		vim.bo.tabstop = 4
+	end,
+})
+
 -- Auto-refresh everything in one place
 local auto_refresh = vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
 
@@ -635,7 +780,13 @@ local function save_current()
 	end
 end
 
--- 1) Wrap split-motion keys (<C-w>h/j/k/l)
+-- Auto-save any dirty buffer on *every* BufLeave (window/nav change, buffer switch, ctrl-^, etc.)
+vim.api.nvim_create_autocmd("BufLeave", {
+	group = auto_refresh, -- reuse your existing AutoRefresh group
+	callback = save_current, -- calls your helper which does `silent! update`
+})
+
+-- Wrap split-motion keys (<C-w>h/j/k/l)
 for _, d in ipairs({ "h", "j", "k", "l" }) do
 	vim.keymap.set("n", "<C-w>" .. d, function()
 		save_current()
@@ -643,7 +794,7 @@ for _, d in ipairs({ "h", "j", "k", "l" }) do
 	end, { noremap = true, silent = true })
 end
 
--- 2) Wrap Telescope shortcuts (use built-in functions, not raw :Telescope commands)
+-- Wrap Telescope shortcuts (use built-in functions, not raw :Telescope commands)
 local tb = require("telescope.builtin")
 vim.keymap.set("n", "<C-p>", function()
 	save_current()
