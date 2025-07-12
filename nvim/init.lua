@@ -436,6 +436,25 @@ require("lazy").setup({
 			end
 
 			conform.setup({
+				formatters = {
+					-- override built-in isort
+					isort = {
+						args = { "--profile", "black", "$FILENAME" },
+						env = { PATH = venv_path() },
+					},
+					-- override built-in black
+					black = {
+						args = { "--quiet", "$FILENAME" },
+						env = { PATH = venv_path() },
+					},
+					-- override built-in php-cs-fixer
+					["php-cs-fixer"] = {
+						args = { "fix", "--quiet", "$FILENAME" },
+						env = { PATH = vim.fn.getcwd() .. "/vendor/bin:" .. vim.env.PATH },
+					},
+				},
+
+				-- 2) Map each ft to a list of *formatter names*
 				formatters_by_ft = {
 					javascript = { "prettier" },
 					typescript = { "prettier" },
@@ -447,26 +466,11 @@ require("lazy").setup({
 					markdown = { "prettier" },
 					lua = { "stylua" },
 					go = { "goimports" },
-					php = {
-						{
-							exe = "php-cs-fixer",
-							args = { "fix", "--quiet", "$FILENAME" },
-							env = { PATH = (vim.fn.getcwd() .. "/vendor/bin:") .. vim.env.PATH },
-						},
-					},
-					python = {
-						{
-							exe = "isort",
-							args = { "--profile", "black", "$FILENAME" },
-							env = { PATH = venv_path() },
-						},
-						{
-							exe = "black",
-							args = { "--quiet", "$FILENAME" },
-							env = { PATH = venv_path() },
-						},
-					},
+					php = { "php-cs-fixer" },
+					python = { "isort", "black" },
 				},
+
+				-- (optional) your existing save hook settings
 				format_after_save = {
 					timeout_ms = 500,
 					lsp_fallback = true,
