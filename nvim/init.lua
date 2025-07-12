@@ -510,7 +510,8 @@ require("lazy").setup({
 
 			lint.linters.flake8 = {
 				cmd = "flake8",
-				args = { "--format=default", "$FILENAME" },
+				args = { "--format=default", "-" }, -- read from stdin
+				stdin = true,
 				stream = "stdout",
 				ignore_exitcode = true,
 			}
@@ -526,10 +527,17 @@ require("lazy").setup({
 			}
 
 			local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
-			vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+			vim.api.nvim_create_autocmd("BufWritePost", {
 				group = lint_augroup,
+				pattern = "*",
 				callback = function()
-					lint.try_lint()
+					local ft = vim.bo.filetype
+					if not lint.linters_by_ft[ft] then
+						return
+					end
+					vim.defer_fn(function()
+						lint.try_lint()
+					end, 200)
 				end,
 			})
 		end,
