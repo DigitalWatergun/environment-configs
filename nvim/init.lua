@@ -783,8 +783,14 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
 
 -- Helper to save the current buffer if it's dirty
 local function save_current()
+	-- skip non-file buffers (oil, netrw, etc.)
+	if vim.bo.buftype ~= "" then
+		return
+	end
+
+	-- only write real, modified files
 	if vim.bo.modifiable and vim.bo.modified then
-		vim.cmd("silent! update") -- :update writes if modified, firing format-on-save
+		vim.cmd("silent! update")
 	end
 end
 
