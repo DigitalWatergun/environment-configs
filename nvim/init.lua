@@ -54,6 +54,25 @@ vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, de
 vim.keymap.set("v", "<Tab>", ">gv", { noremap = true, silent = true, desc = "Indent and reselect" })
 vim.keymap.set("v", "<S-Tab>", "<gv", { noremap = true, silent = true, desc = "Unindent and reselect" })
 
+-- Auto-detect project venv for python3_host_prog
+local function find_project_python()
+	local cwd = vim.fn.getcwd()
+	for _, name in ipairs({ ".venv", "venv", "env" }) do
+		local py = cwd .. "/" .. name .. "/bin/python"
+		if vim.fn.executable(py) == 1 then
+			return py
+		end
+	end
+	return vim.fn.exepath("python3")
+end
+
+local function set_python_host()
+	vim.g.python3_host_prog = find_project_python()
+end
+
+vim.api.nvim_create_autocmd("VimEnter", { callback = set_python_host })
+vim.api.nvim_create_autocmd("DirChanged", { callback = set_python_host })
+
 -- Plugin definitions
 require("lazy").setup({
 	{
@@ -651,6 +670,24 @@ require("lazy").setup({
 					python = {
 						analysis = {
 							typeCheckingMode = "basic", -- or "strict"
+							autoSearchPaths = true,
+							useLibraryCodeForTypes = true,
+						},
+					},
+				},
+			})
+
+			lspconfig.pyright.setup({
+				on_attach = on_attach,
+				before_init = function(_, config)
+					config.settings = config.settings or {}
+					config.settings.python = config.settings.python or {}
+					config.settings.python.pythonPath = find_project_python()
+				end,
+				settings = {
+					python = {
+						analysis = {
+							typeCheckingMode = "basic",
 							autoSearchPaths = true,
 							useLibraryCodeForTypes = true,
 						},
