@@ -401,6 +401,31 @@ require("lazy").setup({
 		end,
 	},
 
+	-- Treesitter context
+	{
+		"nvim-treesitter/nvim-treesitter-context",
+		dependencies = { "nvim-treesitter/nvim-treesitter" },
+		config = function()
+			require("treesitter-context").setup({
+				enable = true, -- Enable this plugin
+				throttle = true, -- Throttle redraws for performance
+				max_lines = 0, -- How many lines the window should span (0 = no limit)
+				patterns = { -- Match patterns for TS nodes to show in context
+					default = {
+						"class",
+						"function",
+						"method",
+						"for",
+						"while",
+						"if",
+						"switch",
+						"case",
+					},
+				},
+			})
+		end,
+	},
+
 	-- Mason for development tools
 	{
 		"williamboman/mason.nvim",
@@ -777,6 +802,17 @@ require("lazy").setup({
 		opts = { -- pass options here or omit for defaults
 			fast_wrap = {}, -- Alt-e surrounds the word under cursor
 			disable_filetype = { "TelescopePrompt", "vim" },
+		},
+	},
+
+	-- Smear Cursor
+	{
+		"sphamba/smear-cursor.nvim",
+		opts = {
+			smear_between_buffers = true, -- smear when switching buffers
+			smear_between_neighbor_lines = true, -- smear when moving line-to-line
+			scroll_buffer_space = true, -- draw smear in buffer space when scrolling
+			smear_insert_mode = true, -- enable in insert mode
 		},
 	},
 })
