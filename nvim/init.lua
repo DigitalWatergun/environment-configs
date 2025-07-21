@@ -609,6 +609,23 @@ require("lazy").setup({
 		end,
 	},
 
+	-- Git blame in the gutter and virtual text
+	{
+		"f-person/git-blame.nvim",
+		event = "BufReadPost", -- load on buffer read so it's available as soon as you open a file
+		cond = vim.fn.executable("git") == 1, -- only load if 'git' is installed
+		config = function()
+			require("gitblame").setup({
+				enabled = true, -- enable virtual text blame (default: false)
+				delay = 500, -- delay in ms before blame appears (default: 1000)
+				virtual_text_pos = "eol", -- where to show the text: 'eol' | 'inline' | 'right_align' (default: 'eol')
+				date_format = "%Y-%m-%d", -- date format (same as strftime)
+				filetype_exclude = { "NvimTree", "toggleterm", "dashboard" }, -- filetypes to disable in
+			})
+			vim.keymap.set("n", "<leader>gb", "<cmd>GitBlameToggle<CR>", { desc = "Toggle Git blame virtual text" }) -- toggle with <leader>gb
+		end,
+	},
+
 	-- LSP
 	{
 		"neovim/nvim-lspconfig",
