@@ -825,11 +825,14 @@ require("lazy").setup({
 	-- Smear Cursor
 	{
 		"sphamba/smear-cursor.nvim",
+		dependencies = { "lewis6991/gitsigns.nvim" },
 		opts = {
 			smear_between_buffers = true, -- smear when switching buffers
 			smear_between_neighbor_lines = true, -- smear when moving line-to-line
 			scroll_buffer_space = true, -- draw smear in buffer space when scrolling
 			smear_insert_mode = true, -- enable in insert mode
+			hide_target_hack = false,
+			never_draw_over_target = true, -- and never draw your smear exactly under the real cursor
 		},
 	},
 })
@@ -847,16 +850,12 @@ vim.api.nvim_create_autocmd("FileType", {
 local auto_refresh = vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
 
 -- On idle/focus/write/etc: stat files, refresh git signs, and restart dead LSPs
-vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGained", "BufWritePost" }, {
+vim.api.nvim_create_autocmd({ "FocusGained", "BufWritePost" }, {
 	group = auto_refresh,
-	callback = function()
-		-- 1) Re-stat files on disk
-		pcall(vim.cmd, "silent! checktime")
-
-		-- 2) Refresh git gutter signs
+	callback = function(ev)
+		pcall(vim.cmd, "silent! checktime") -- Re-stat and reload changed files on disk
 		pcall(vim.cmd, "Gitsigns refresh")
-
-		-- 3) Restart any LSP client that’s stopped
+		-- Restart any LSP client that’s stopped
 		for _, client in ipairs(vim.lsp.get_clients()) do
 			-- only try to restart if both the check and the start method are present
 			if type(client.is_stopped) == "function" and client:is_stopped() and type(client.start) == "function" then
