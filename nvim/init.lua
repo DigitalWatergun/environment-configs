@@ -626,6 +626,21 @@ require("lazy").setup({
 		end,
 	},
 
+	-- Git Conflicts (git-conflict.nvim)
+	-- Buffer-local mappings installed when a Git conflict is detected:
+	--   co   → choose “ours”   (keep your current changes)
+	--   ct   → choose “theirs” (keep incoming changes)
+	--   cb   → choose both     (keep both sets of changes)
+	--   c0   → choose none     (remove all conflict markers)
+	--   ]x   → jump to NEXT conflict hunk
+	--   [x   → jump to PREVIOUS conflict hunk
+	{
+		"akinsho/git-conflict.nvim",
+		version = "*",
+		event = "BufReadPre",
+		config = true, -- auto-runs require('git-conflict').setup()
+	},
+
 	-- LSP
 	{
 		"neovim/nvim-lspconfig",
