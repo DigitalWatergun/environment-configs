@@ -203,12 +203,26 @@ require("lazy").setup({
 
 	-- Molokai theme here
 	{
-		"tomasr/molokai", -- This is the GitHub repository for the molokai theme
-		name = "molokai", -- Give it a friendly name for lazy.nvim to reference
-		priority = 1000, -- Load this plugin early (themes should load before other plugins)
+		"tomasr/molokai",
+		name = "molokai",
+		priority = 1000,
 		config = function()
-			-- This function runs after the plugin loads and activates the theme
-			vim.cmd.colorscheme("molokai") -- This is equivalent to running :colorscheme molokai
+			vim.cmd.colorscheme("molokai")
+
+			require("nvim-tree").setup({
+				view = { width = 40 },
+			})
+
+			local blue = "#4D8CE7"
+
+			-- folder icons & names
+			vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = blue })
+			vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = blue })
+
+			-- (optional) file icons & names
+			vim.api.nvim_set_hl(0, "NvimTreeFileIcon", { fg = blue })
+			vim.api.nvim_set_hl(0, "NvimTreeFileName", { fg = blue })
+			-- ──────────────────────────────────────────────────────────────
 		end,
 	},
 
