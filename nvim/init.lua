@@ -53,6 +53,7 @@ vim.keymap.set(
 vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, desc = "Terminal → Normal mode" })
 vim.keymap.set("v", "<Tab>", ">gv", { noremap = true, silent = true, desc = "Indent and reselect" })
 vim.keymap.set("v", "<S-Tab>", "<gv", { noremap = true, silent = true, desc = "Unindent and reselect" })
+vim.keymap.set("n", "<leader>dm", ":delmarks!<Bar>delmarks A-Z0-9<CR>", { desc = "Delete all marks" })
 
 -- Auto-detect project venv for python3_host_prog
 local function find_project_python()
@@ -423,6 +424,20 @@ require("lazy").setup({
 					},
 				},
 			})
+		end,
+	},
+
+	-- Vim signature to show marks in the signcolumn/gutter
+	{
+		"kshenoy/vim-signature",
+		event = "BufReadPre", -- load early, but lazily
+		config = function()
+			-- use a simple triangle for your marks
+			vim.g.signature_mark_text = "▶"
+			-- also highlight the marked line
+			vim.g.signature_line_enabled = 1
+			-- how high priority in the signcolumn
+			vim.g.signature_priority = 10
 		end,
 	},
 
