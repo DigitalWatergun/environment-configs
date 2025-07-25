@@ -209,10 +209,6 @@ require("lazy").setup({
 		config = function()
 			vim.cmd.colorscheme("molokai")
 
-			require("nvim-tree").setup({
-				view = { width = 40 },
-			})
-
 			local blue = "#4D8CE7"
 
 			-- folder icons & names
@@ -222,7 +218,6 @@ require("lazy").setup({
 			-- (optional) file icons & names
 			vim.api.nvim_set_hl(0, "NvimTreeFileIcon", { fg = blue })
 			vim.api.nvim_set_hl(0, "NvimTreeFileName", { fg = blue })
-			-- ──────────────────────────────────────────────────────────────
 		end,
 	},
 
@@ -231,6 +226,7 @@ require("lazy").setup({
 		"nvim-tree/nvim-tree.lua",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
+			print("💡 nvim-tree config loaded")
 			local api = require("nvim-tree.api")
 
 			require("nvim-tree").setup({
