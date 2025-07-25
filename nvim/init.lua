@@ -747,19 +747,6 @@ require("lazy").setup({
 			})
 
 			lspconfig.pyright.setup({
-				on_attach = on_attach, -- reuse your shared on_attach
-				settings = {
-					python = {
-						analysis = {
-							typeCheckingMode = "basic", -- or "strict"
-							autoSearchPaths = true,
-							useLibraryCodeForTypes = true,
-						},
-					},
-				},
-			})
-
-			lspconfig.pyright.setup({
 				on_attach = on_attach,
 				before_init = function(_, config)
 					config.settings = config.settings or {}
@@ -873,6 +860,22 @@ require("lazy").setup({
 			smear_insert_mode = true, -- enable in insert mode
 			hide_target_hack = false,
 			never_draw_over_target = true, -- and never draw your smear exactly under the real cursor
+		},
+	},
+}, {
+	performance = {
+		rtp = {
+			disabled_plugins = {
+				"gzip",
+				"matchit",
+				"matchparen",
+				"netrw",
+				"netrwPlugin",
+				"tar",
+				"tarPlugin",
+				"zip",
+				"zipPlugin",
+			},
 		},
 	},
 })
