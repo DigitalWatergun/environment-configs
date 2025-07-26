@@ -549,7 +549,6 @@ require("lazy").setup({
 
 				-- (optional) your existing save hook settings
 				format_after_save = {
-					timeout_ms = 500,
 					lsp_fallback = true,
 				},
 				notify_on_error = true,
@@ -591,10 +590,11 @@ require("lazy").setup({
 
 			lint.linters.flake8 = {
 				cmd = "flake8",
-				args = { "--format=default", "-" }, -- read from stdin
-				stdin = true,
+				args = { "--format=%f:%l:%c: %m" },
+				stdin = false,
 				stream = "stdout",
 				ignore_exitcode = true,
+				parser = require("lint.parser").from_errorformat("%f:%l:%c: %m"),
 			}
 
 			lint.linters_by_ft = {
