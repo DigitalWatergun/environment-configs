@@ -514,24 +514,47 @@ require("lazy").setup({
 
 			conform.setup({
 				formatters = {
-					-- override built-in isort
+					-- Python
 					isort = {
-						args = { "--profile", "black", "$FILENAME" },
-						env = { PATH = venv_path() },
+						command = "isort",
+						args = { "--profile", "black", "-" },
+						stdin = true,
 					},
-					-- override built-in black
 					black = {
-						args = { "--quiet", "$FILENAME" },
-						env = { PATH = venv_path() },
+						command = "black",
+						args = { "--quiet", "-" },
+						stdin = true,
 					},
-					-- override built-in php-cs-fixer
-					["php-cs-fixer"] = {
-						args = { "fix", "--quiet", "$FILENAME" },
+
+					-- JS/TS via Prettier
+					prettier = {
+						args = { "--stdin-filepath", "$FILENAME" },
+						stdin = true,
+					},
+
+					-- Lua
+					stylua = {
+						args = { "--stdin-filepath", "$FILENAME", "-" },
+						stdin = true,
+					},
+
+					-- Go
+					goimports = {
+						args = { "-srcdir=" .. vim.fn.getcwd(), "-" },
+						stdin = true,
+					},
+
+					-- PHP
+					phpcbf = {
+						args = {
+							"--stdin-path=" .. "$FILENAME",
+							"-",
+						},
+						stdin = true,
 						env = { PATH = vim.fn.getcwd() .. "/vendor/bin:" .. vim.env.PATH },
 					},
 				},
 
-				-- 2) Map each ft to a list of *formatter names*
 				formatters_by_ft = {
 					javascript = { "prettier" },
 					typescript = { "prettier" },
@@ -543,15 +566,22 @@ require("lazy").setup({
 					markdown = { "prettier" },
 					lua = { "stylua" },
 					go = { "goimports" },
-					php = { "php-cs-fixer" },
+					php = { "phpcbf" },
 					python = { "isort", "black" },
 				},
 
 				-- (optional) your existing save hook settings
-				format_after_save = {
-					lsp_fallback = true,
-				},
+				format_after_save = false,
 				notify_on_error = true,
+			})
+
+			-- one in‐memory format pass before the single :w
+			vim.api.nvim_create_autocmd("BufWritePre", {
+				group = vim.api.nvim_create_augroup("ConformPreSave", { clear = true }),
+				pattern = "*",
+				callback = function()
+					require("conform").format({ lsp_fallback = true })
+				end,
 			})
 		end,
 	},
@@ -607,16 +637,14 @@ require("lazy").setup({
 				python = { "flake8" },
 			}
 
-			local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
-			vim.api.nvim_create_autocmd("BufWritePost", {
-				group = lint_augroup,
+			vim.api.nvim_create_autocmd("BufWritePre", {
+				group = vim.api.nvim_create_augroup("LintPreSave", { clear = true }),
 				pattern = "*",
 				callback = function()
 					local ft = vim.bo.filetype
-					if not lint.linters_by_ft[ft] then
-						return
+					if lint.linters_by_ft[ft] then
+						lint.try_lint()
 					end
-					lint.try_lint()
 				end,
 			})
 		end,
