@@ -209,15 +209,23 @@ require("lazy").setup({
 		config = function()
 			vim.cmd.colorscheme("molokai")
 
-			local blue = "#4D8CE7"
+			local blue = "#4A90C2"
+			local green = "#84d675"
 
 			-- folder icons & names
-			vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = blue })
-			vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = blue })
+			vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = blue, bold = true })
+			vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = blue, bold = true })
 
 			-- (optional) file icons & names
 			vim.api.nvim_set_hl(0, "NvimTreeFileIcon", { fg = blue })
 			vim.api.nvim_set_hl(0, "NvimTreeFileName", { fg = blue })
+
+			-- opened folders/icons
+			vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderIcon", { fg = green, bold = true })
+			vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = green, bold = true })
+
+			vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderIcon", { fg = green, bold = true })
+			vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName", { fg = green, bold = true })
 		end,
 	},
 
