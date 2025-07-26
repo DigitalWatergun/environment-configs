@@ -36,7 +36,7 @@ vim.opt.splitbelow = true -- Horizontal splits appear BELOW (optional)
 vim.opt.equalalways = true -- Equalize whenever you open/close a split
 vim.opt.eadirection = "both" -- Adjust both height and width
 vim.opt.autoread = true -- Autoreload buffers
-vim.opt.updatetime = 300 -- Make CursorHold and friends fire more responsively
+vim.opt.updatetime = 100 -- Make CursorHold and friends fire more responsively
 vim.opt.hidden = true -- "Hide" (keep in memory) modified buffers instead of blockiing
 vim.opt.autowrite = true -- Write current buffer if modified commands like :edit, :make, :checktime
 vim.opt.autowriteall = true -- Write all modified buffers before :next, :rewind, :last, external shell commands, etc.
@@ -616,9 +616,7 @@ require("lazy").setup({
 					if not lint.linters_by_ft[ft] then
 						return
 					end
-					vim.defer_fn(function()
-						lint.try_lint()
-					end, 200)
+					lint.try_lint()
 				end,
 			})
 		end,
@@ -705,14 +703,18 @@ require("lazy").setup({
 				vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, bufopts) -- Populate location list with diagnostics
 			end
 
+			local short_flags = { debounce_text_changes = 50 }
+
 			-- TypeScript setup
 			lspconfig.ts_ls.setup({
 				on_attach = on_attach,
+				flags = short_flags,
 			})
 
 			-- Lua setup
 			lspconfig.lua_ls.setup({
 				on_attach = on_attach,
+				flags = short_flags,
 				settings = {
 					Lua = {
 						diagnostics = {
@@ -725,6 +727,7 @@ require("lazy").setup({
 			-- Golang setup
 			lspconfig.gopls.setup({
 				on_attach = on_attach,
+				flags = short_flags,
 				settings = {
 					gopls = {
 						analyses = { unusedparams = true, shadow = true },
@@ -736,6 +739,7 @@ require("lazy").setup({
 			-- ESLint setup. Need to run "npm install -g vscode-langservers-extracted"
 			lspconfig.eslint.setup({
 				on_attach = on_attach,
+				flags = short_flags,
 				settings = {
 					eslint = {
 						enable = true,
@@ -756,6 +760,7 @@ require("lazy").setup({
 
 			lspconfig.pyright.setup({
 				on_attach = on_attach,
+				flags = short_flags,
 				before_init = function(_, config)
 					config.settings = config.settings or {}
 					config.settings.python = config.settings.python or {}
@@ -774,13 +779,13 @@ require("lazy").setup({
 
 			lspconfig.intelephense.setup({
 				on_attach = on_attach, -- reuse your shared on_attach
+				flags = short_flags,
 				settings = {
 					intelephense = {
 						files = { maxSize = 5000000 }, -- Allow larger files if needed
 						environment = {
 							includePaths = { "vendor/" }, -- Composer dependencies
 						},
-						-- licenceKey = "your-key-here", -- uncomment if you have a paid licence
 					},
 				},
 			})
