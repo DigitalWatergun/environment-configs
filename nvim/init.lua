@@ -253,7 +253,7 @@ require("lazy").setup({
 							folder_arrow = true,
 						},
 					},
-					highlight_git = "icon",
+					highlight_git = "all",
 				},
 				update_focused_file = {
 					enable = true,
@@ -908,7 +908,10 @@ require("lazy").setup({
 			scroll_buffer_space = true, -- draw smear in buffer space when scrolling
 			smear_insert_mode = true, -- enable in insert mode
 			hide_target_hack = false,
-			never_draw_over_target = true, -- and never draw your smear exactly under the real cursor
+			never_draw_over_target = true,
+			stiffness = 0.5,
+			trailing_stiffness = 0.5,
+			distance_stop_animating = 0.5,
 		},
 	},
 }, {
@@ -942,7 +945,7 @@ vim.api.nvim_create_autocmd("FileType", {
 local auto_refresh = vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
 
 -- On idle/focus/write/etc: stat files, refresh git signs, and restart dead LSPs
-vim.api.nvim_create_autocmd({ "FocusGained", "BufWritePost" }, {
+vim.api.nvim_create_autocmd({ "FocusGained" }, {
 	group = auto_refresh,
 	callback = function(ev)
 		pcall(vim.cmd, "silent! checktime") -- Re-stat and reload changed files on disk
