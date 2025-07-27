@@ -1,3 +1,29 @@
+-- Safely clear any existing write‑based groups (no error if they don't exist)
+pcall(vim.api.nvim_clear_autocmds, { group = "AutoRefresh" })
+pcall(vim.api.nvim_clear_autocmds, { group = "NvimTreeAutoRefresh" })
+
+-- Recreate AutoRefresh to only fire on FocusGained
+vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
+vim.api.nvim_create_autocmd("FocusGained", {
+	group = "AutoRefresh",
+	callback = function()
+		pcall(vim.cmd, "silent! checktime") -- reload disk changes
+		pcall(require("gitsigns").refresh) -- update git signs
+	end,
+})
+
+-- Recreate NvimTreeAutoRefresh to only fire on FocusGained
+vim.api.nvim_create_augroup("NvimTreeAutoRefresh", { clear = true })
+vim.api.nvim_create_autocmd("FocusGained", {
+	group = "NvimTreeAutoRefresh",
+	callback = function()
+		local api = require("nvim-tree.api")
+		if api.tree.is_visible() then
+			api.tree.reload()
+		end
+	end,
+})
+
 -- This section automatically downloads and installs lazy.nvim if it's not already present
 -- Think of this as ensuring the "app store" is installed before we try to download apps
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -40,6 +66,32 @@ vim.opt.updatetime = 100 -- Make CursorHold and friends fire more responsively
 vim.opt.hidden = true -- "Hide" (keep in memory) modified buffers instead of blockiing
 vim.opt.autowrite = true -- Write current buffer if modified commands like :edit, :make, :checktime
 vim.opt.autowriteall = true -- Write all modified buffers before :next, :rewind, :last, external shell commands, etc.
+vim.opt.lazyredraw = true -- Enable lazy redraw to reduce on-save stutters
+
+-- Save‑hooks: format & lint on save
+local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
+
+-- format with Conform
+vim.api.nvim_create_autocmd("BufWritePre", {
+	group = save_hooks,
+	pattern = "*",
+	callback = function()
+		require("conform").format({ lsp_fallback = true })
+	end,
+})
+
+-- lint with nvim‑lint
+vim.api.nvim_create_autocmd("BufWritePre", {
+	group = save_hooks,
+	pattern = "*",
+	callback = function()
+		local ft = vim.bo.filetype
+		local lint = require("lint")
+		if lint.linters_by_ft[ft] then
+			lint.try_lint()
+		end
+	end,
+})
 
 -- Basic keymaps
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
@@ -234,7 +286,6 @@ require("lazy").setup({
 		"nvim-tree/nvim-tree.lua",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			print("💡 nvim-tree config loaded")
 			local api = require("nvim-tree.api")
 
 			require("nvim-tree").setup({
@@ -329,14 +380,6 @@ require("lazy").setup({
 			-- your existing auto-refresh logic for the tree view
 			vim.api.nvim_create_augroup("NvimTreeAutoRefresh", { clear = true })
 			vim.api.nvim_create_autocmd("FocusGained", {
-				group = "NvimTreeAutoRefresh",
-				callback = function()
-					if api.tree.is_visible() then
-						api.tree.reload()
-					end
-				end,
-			})
-			vim.api.nvim_create_autocmd("BufWritePost", {
 				group = "NvimTreeAutoRefresh",
 				callback = function()
 					if api.tree.is_visible() then
@@ -909,9 +952,14 @@ require("lazy").setup({
 			smear_insert_mode = true, -- enable in insert mode
 			hide_target_hack = false,
 			never_draw_over_target = true,
-			stiffness = 0.5,
+			stiffness = 0.8,
 			trailing_stiffness = 0.5,
+			stiffness_insert_mode = 0.7,
+			trailing_stiffness_insert_mode = 0.7,
+			damping = 0.8,
+			damping_insert_mode = 0.8,
 			distance_stop_animating = 0.5,
+			time_interval = 7,
 		},
 	},
 }, {
@@ -941,34 +989,6 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
--- Auto-refresh everything in one place
-local auto_refresh = vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
-
--- On idle/focus/write/etc: stat files, refresh git signs, and restart dead LSPs
-vim.api.nvim_create_autocmd({ "FocusGained" }, {
-	group = auto_refresh,
-	callback = function(ev)
-		pcall(vim.cmd, "silent! checktime") -- Re-stat and reload changed files on disk
-		pcall(vim.cmd, "Gitsigns refresh")
-		-- Restart any LSP client that’s stopped
-		for _, client in ipairs(vim.lsp.get_clients()) do
-			-- only try to restart if both the check and the start method are present
-			if type(client.is_stopped) == "function" and client:is_stopped() and type(client.start) == "function" then
-				pcall(client.start, client)
-			end
-		end
-	end,
-})
-
--- If a file changed on disk via an external shell command, show a warning
-vim.api.nvim_create_autocmd("FileChangedShellPost", {
-	group = auto_refresh,
-	pattern = "*",
-	callback = function()
-		vim.cmd("echohl WarningMsg | echo 'File changed on disk, reloaded.' | echohl None")
-	end,
-})
-
 -- Helper to save the current buffer if it's dirty
 local function save_current()
 	-- skip non-file buffers (oil, netrw, etc.)
@@ -982,9 +1002,11 @@ local function save_current()
 	end
 end
 
+local auto_save_grp = vim.api.nvim_create_augroup("AutoSave", { clear = true })
+
 -- Auto-save any dirty buffer on *every* BufLeave (window/nav change, buffer switch, ctrl-^, etc.)
 vim.api.nvim_create_autocmd("BufLeave", {
-	group = auto_refresh, -- reuse your existing AutoRefresh group
+	group = auto_save_grp, -- reuse your existing AutoRefresh group
 	callback = save_current, -- calls your helper which does `silent! update`
 })
 
