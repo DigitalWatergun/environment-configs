@@ -239,6 +239,10 @@ require("lazy").setup({
 
 			require("nvim-tree").setup({
 				view = { width = 40 },
+				filters = {
+					dotfiles = false,
+					git_ignored = false,
+				},
 				renderer = {
 					group_empty = true,
 					icons = {
@@ -249,6 +253,7 @@ require("lazy").setup({
 							folder_arrow = true,
 						},
 					},
+					highlight_git = "all",
 				},
 				update_focused_file = {
 					enable = true,
@@ -317,6 +322,9 @@ require("lazy").setup({
 					end, buf_opts("Delete"))
 				end,
 			})
+
+			-- Gray out the “ignored” status (icon + name)
+			vim.api.nvim_set_hl(0, "NvimTreeGitIgnoredHL", { fg = "#5c6370" })
 
 			-- your existing auto-refresh logic for the tree view
 			vim.api.nvim_create_augroup("NvimTreeAutoRefresh", { clear = true })
