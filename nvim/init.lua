@@ -253,7 +253,7 @@ require("lazy").setup({
 							folder_arrow = true,
 						},
 					},
-					highlight_git = "all",
+					highlight_git = "icon",
 				},
 				update_focused_file = {
 					enable = true,
