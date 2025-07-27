@@ -68,28 +68,28 @@ vim.opt.autowrite = true -- Write current buffer if modified commands like :edit
 vim.opt.autowriteall = true -- Write all modified buffers before :next, :rewind, :last, external shell commands, etc.
 vim.opt.lazyredraw = true -- Enable lazy redraw to reduce on-save stutters
 
--- Save‑hooks: format & lint on save
+-- Async format+lint after save, then write silently
 local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
-
--- format with Conform
-vim.api.nvim_create_autocmd("BufWritePre", {
+vim.api.nvim_create_autocmd("BufWritePost", {
 	group = save_hooks,
 	pattern = "*",
 	callback = function()
-		require("conform").format({ lsp_fallback = true })
-	end,
-})
+		-- defer a bit so Neovim can finish its redraw
+		vim.defer_fn(function()
+			-- format buffer
+			require("conform").format({ lsp_fallback = true })
 
--- lint with nvim‑lint
-vim.api.nvim_create_autocmd("BufWritePre", {
-	group = save_hooks,
-	pattern = "*",
-	callback = function()
-		local ft = vim.bo.filetype
-		local lint = require("lint")
-		if lint.linters_by_ft[ft] then
-			lint.try_lint()
-		end
+			-- lint buffer
+			local ft = vim.bo.filetype
+			local lint = require("lint")
+			if lint.linters_by_ft[ft] then
+				lint.try_lint()
+			end
+
+			-- silently write the newly-formatted buffer
+			-- `noautocmd` prevents this write from firing your save-hooks again
+			vim.cmd("silent! noautocmd write")
+		end, 50)
 	end,
 })
 
