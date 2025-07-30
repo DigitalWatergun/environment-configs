@@ -2,22 +2,14 @@
 pcall(vim.api.nvim_clear_autocmds, { group = "AutoRefresh" })
 pcall(vim.api.nvim_clear_autocmds, { group = "NvimTreeAutoRefresh" })
 
--- Recreate AutoRefresh to only fire on FocusGained
-vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
+-- On FocusGained: check for external file changes, refresh Git signs, and reload the file‑tree if open
+local focus_grp = vim.api.nvim_create_augroup("FocusActions", { clear = true })
 vim.api.nvim_create_autocmd("FocusGained", {
-	group = "AutoRefresh",
+	group = focus_grp,
 	callback = function()
-		pcall(vim.cmd, "silent! checktime") -- reload disk changes
-		pcall(require("gitsigns").refresh) -- update git signs
-	end,
-})
-
--- Recreate NvimTreeAutoRefresh to only fire on FocusGained
-vim.api.nvim_create_augroup("NvimTreeAutoRefresh", { clear = true })
-vim.api.nvim_create_autocmd("FocusGained", {
-	group = "NvimTreeAutoRefresh",
-	callback = function()
-		local api = require("nvim-tree.api")
+		pcall(vim.cmd, "silent! checktime") -- reload any changed buffers from disk
+		pcall(require("gitsigns").refresh) -- refresh gitsigns gutter
+		local api = require("nvim-tree.api") -- reload nvim-tree if it’s open
 		if api.tree.is_visible() then
 			api.tree.reload()
 		end
@@ -67,31 +59,6 @@ vim.opt.hidden = true -- "Hide" (keep in memory) modified buffers instead of blo
 vim.opt.autowrite = true -- Write current buffer if modified commands like :edit, :make, :checktime
 vim.opt.autowriteall = true -- Write all modified buffers before :next, :rewind, :last, external shell commands, etc.
 vim.opt.lazyredraw = true -- Enable lazy redraw to reduce on-save stutters
-
--- Async format+lint after save, then write silently
-local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
-vim.api.nvim_create_autocmd("BufWritePost", {
-	group = save_hooks,
-	pattern = "*",
-	callback = function()
-		-- defer a bit so Neovim can finish its redraw
-		vim.defer_fn(function()
-			-- format buffer
-			require("conform").format({ lsp_fallback = true })
-
-			-- lint buffer
-			local ft = vim.bo.filetype
-			local lint = require("lint")
-			if lint.linters_by_ft[ft] then
-				lint.try_lint()
-			end
-
-			-- silently write the newly-formatted buffer
-			-- `noautocmd` prevents this write from firing your save-hooks again
-			vim.cmd("silent! noautocmd write")
-		end, 50)
-	end,
-})
 
 -- Basic keymaps
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
@@ -570,11 +537,13 @@ require("lazy").setup({
 						command = "isort",
 						args = { "--profile", "black", "-" },
 						stdin = true,
+						env = { PATH = venv_path() },
 					},
 					black = {
 						command = "black",
 						args = { "--quiet", "-" },
 						stdin = true,
+						env = { PATH = venv_path() },
 					},
 
 					-- JS/TS via Prettier
@@ -624,15 +593,6 @@ require("lazy").setup({
 				-- (optional) your existing save hook settings
 				format_after_save = false,
 				notify_on_error = true,
-			})
-
-			-- one in‐memory format pass before the single :w
-			vim.api.nvim_create_autocmd("BufWritePre", {
-				group = vim.api.nvim_create_augroup("ConformPreSave", { clear = true }),
-				pattern = "*",
-				callback = function()
-					require("conform").format({ lsp_fallback = true })
-				end,
 			})
 		end,
 	},
@@ -687,17 +647,6 @@ require("lazy").setup({
 				php = { "phpstan" },
 				python = { "flake8" },
 			}
-
-			vim.api.nvim_create_autocmd("BufWritePre", {
-				group = vim.api.nvim_create_augroup("LintPreSave", { clear = true }),
-				pattern = "*",
-				callback = function()
-					local ft = vim.bo.filetype
-					if lint.linters_by_ft[ft] then
-						lint.try_lint()
-					end
-				end,
-			})
 		end,
 	},
 
@@ -989,6 +938,23 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
+local conform = require("conform")
+local lint = require("lint")
+
+-- Async format+lint before write
+local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
+vim.api.nvim_create_autocmd("BufWritePre", {
+	group = save_hooks,
+	pattern = "*",
+	callback = function()
+		conform.format({ lsp_fallback = true })
+		local ft = vim.bo.filetype
+		if lint.linters_by_ft[ft] then
+			lint.try_lint()
+		end
+	end,
+})
+
 -- Helper to save the current buffer if it's dirty
 local function save_current()
 	-- skip non-file buffers (oil, netrw, etc.)
@@ -1005,7 +971,7 @@ end
 local auto_save_grp = vim.api.nvim_create_augroup("AutoSave", { clear = true })
 
 -- Auto-save any dirty buffer on *every* BufLeave (window/nav change, buffer switch, ctrl-^, etc.)
-vim.api.nvim_create_autocmd("BufLeave", {
+vim.api.nvim_create_autocmd({ "WinLeave", "BufHidden" }, {
 	group = auto_save_grp, -- reuse your existing AutoRefresh group
 	callback = save_current, -- calls your helper which does `silent! update`
 })
