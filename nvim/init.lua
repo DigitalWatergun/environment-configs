@@ -947,6 +947,10 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	group = save_hooks,
 	pattern = "*",
 	callback = function()
+		if not vim.bo.modified then -- only run format+lint if the buffer is marked modified
+			return
+		end
+
 		conform.format({ lsp_fallback = true })
 		local ft = vim.bo.filetype
 		if lint.linters_by_ft[ft] then
@@ -957,8 +961,7 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 
 -- Helper to save the current buffer if it's dirty
 local function save_current()
-	-- skip non-file buffers (oil, netrw, etc.)
-	if vim.bo.buftype ~= "" then
+	if vim.bo.buftype ~= "" then -- skip non-file buffers (oil, netrw, etc.)
 		return
 	end
 
