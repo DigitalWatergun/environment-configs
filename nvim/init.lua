@@ -3,13 +3,20 @@ pcall(vim.api.nvim_clear_autocmds, { group = "AutoRefresh" })
 pcall(vim.api.nvim_clear_autocmds, { group = "NvimTreeAutoRefresh" })
 
 -- On FocusGained: check for external file changes, refresh Git signs, and reload the file‑tree if open
+local last_focus = 0
 local focus_grp = vim.api.nvim_create_augroup("FocusActions", { clear = true })
 vim.api.nvim_create_autocmd("FocusGained", {
 	group = focus_grp,
 	callback = function()
-		pcall(vim.cmd, "silent! checktime") -- reload any changed buffers from disk
-		pcall(require("gitsigns").refresh) -- refresh gitsigns gutter
-		local api = require("nvim-tree.api") -- reload nvim-tree if it’s open
+		local now = vim.loop.hrtime() / 1e6 -- ms
+		if now - last_focus < 1000 then
+			return
+		end
+		last_focus = now
+
+		pcall(vim.cmd, "silent! checktime") -- reload disk-changed buffers
+		pcall(require("gitsigns").refresh) -- refresh git signs
+		local api = require("nvim-tree.api") -- reload nvim-tree if open
 		if api.tree.is_visible() then
 			api.tree.reload()
 		end
