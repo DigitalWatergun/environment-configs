@@ -73,6 +73,10 @@ vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, de
 vim.keymap.set("v", "<Tab>", ">gv", { noremap = true, silent = true, desc = "Indent and reselect" })
 vim.keymap.set("v", "<S-Tab>", "<gv", { noremap = true, silent = true, desc = "Unindent and reselect" })
 vim.keymap.set("n", "<leader>dm", ":delmarks!<Bar>delmarks A-Z0-9<CR>", { desc = "Delete all marks" })
+vim.keymap.set("n", "gv", function()
+	vim.cmd("vsplit")
+	vim.lsp.buf.definition()
+end)
 
 -- Auto-detect project venv for python3_host_prog
 local function find_project_python()
@@ -211,6 +215,7 @@ require("lazy").setup({
 		keys = {
 			{ "<C-p>", "<cmd>Telescope find_files<cr>", desc = "Find files" },
 			{ "<C-f>", "<cmd>Telescope live_grep<cr>", desc = "Live grep search" },
+			{ "<C-h>", "<cmd>Telescope resume<cr>", desc = "Resume live grep search" },
 			{ "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "Find buffers" },
 			{ "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Help tags" },
 			{ "<leader>fw", "<cmd>Telescope grep_string<cr>", desc = "Find word under cursor" },
@@ -954,44 +959,3 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 		end
 	end,
 })
-
--- Helper to save the current buffer if it's dirty
-local function save_current()
-	-- skip non-file buffers (oil, netrw, etc.)
-	if vim.bo.buftype ~= "" then
-		return
-	end
-
-	-- only write real, modified files
-	if vim.bo.modifiable and vim.bo.modified then
-		vim.cmd("silent! update")
-	end
-end
-
-local auto_save_grp = vim.api.nvim_create_augroup("AutoSave", { clear = true })
-
--- Auto-save any dirty buffer on *every* BufLeave (window/nav change, buffer switch, ctrl-^, etc.)
-vim.api.nvim_create_autocmd({ "WinLeave", "BufHidden" }, {
-	group = auto_save_grp, -- reuse your existing AutoRefresh group
-	callback = save_current, -- calls your helper which does `silent! update`
-})
-
--- Wrap split-motion keys (<C-w>h/j/k/l)
-for _, d in ipairs({ "h", "j", "k", "l" }) do
-	vim.keymap.set("n", "<C-w>" .. d, function()
-		save_current()
-		vim.cmd("wincmd " .. d)
-	end, { noremap = true, silent = true })
-end
-
--- Wrap Telescope shortcuts (use built-in functions, not raw :Telescope commands)
-local tb = require("telescope.builtin")
-vim.keymap.set("n", "<C-p>", function()
-	save_current()
-	tb.find_files()
-end, { noremap = true, silent = true })
-
-vim.keymap.set("n", "<C-f>", function()
-	save_current()
-	tb.live_grep()
-end, { noremap = true, silent = true })
