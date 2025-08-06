@@ -923,7 +923,7 @@ require("lazy").setup({
 							"branch",
 							icon = "",
 						},
-						"diff",
+						-- Remove 'diff' from here
 					},
 					lualine_c = {
 						{
@@ -943,19 +943,39 @@ require("lazy").setup({
 									return d.severity == 4
 								end, diagnostics)
 
-								-- Build diagnostics string
-								local diag_str = ""
+								-- Get git diff info
+								local diff_added = vim.b.gitsigns_status_dict and vim.b.gitsigns_status_dict.added or 0
+								local diff_modified = vim.b.gitsigns_status_dict and vim.b.gitsigns_status_dict.changed
+									or 0
+								local diff_removed = vim.b.gitsigns_status_dict and vim.b.gitsigns_status_dict.removed
+									or 0
+
+								-- Build diagnostics and git diff string
+								local status_str = ""
+
+								-- Add diagnostics
 								if error_count > 0 then
-									diag_str = diag_str .. "◯" .. error_count .. " "
+									status_str = status_str .. "◯" .. error_count .. " "
 								end
 								if warn_count > 0 then
-									diag_str = diag_str .. "△" .. warn_count .. " "
+									status_str = status_str .. "△" .. warn_count .. " "
 								end
 								if info_count > 0 then
-									diag_str = diag_str .. "○" .. info_count .. " "
+									status_str = status_str .. "○" .. info_count .. " "
 								end
 								if hint_count > 0 then
-									diag_str = diag_str .. "◇" .. hint_count .. " "
+									status_str = status_str .. "◇" .. hint_count .. " "
+								end
+
+								-- Add git diff info
+								if diff_added > 0 then
+									status_str = status_str .. "+" .. diff_added .. " "
+								end
+								if diff_modified > 0 then
+									status_str = status_str .. "~" .. diff_modified .. " "
+								end
+								if diff_removed > 0 then
+									status_str = status_str .. "-" .. diff_removed .. " "
 								end
 
 								-- Get filename
@@ -965,10 +985,10 @@ require("lazy").setup({
 								end
 
 								-- Combine with custom styling
-								if diag_str ~= "" then
+								if status_str ~= "" then
 									return string.format(
 										"%%#DiagnosticSection#%s%%#Arrow#\u{E0B0}%%#FilenameSection# %s",
-										diag_str:gsub("%s+$", ""),
+										status_str:gsub("%s+$", ""),
 										filename
 									)
 								else
@@ -986,10 +1006,10 @@ require("lazy").setup({
 
 			-- Create custom highlight groups
 			vim.cmd([[
-      highlight DiagnosticSection guifg=#ffffff guibg=#2a2a2a
-      highlight Arrow guifg=#2a2a2a guibg=#1c1c1c
-      highlight FilenameSection guifg=#ffffff guibg=#1c1c1c
-    ]])
+			highlight DiagnosticSection guifg=#ffffff guibg=#2a2a2a
+			highlight Arrow guifg=#2a2a2a guibg=#1c1c1c
+			highlight FilenameSection guifg=#ffffff guibg=#1c1c1c
+		]])
 		end,
 	},
 
