@@ -5,6 +5,7 @@
 -- brew install python3       # When you work on Python projects
 -- brew install node          # When you work on JS/TS projects
 -- brew install go            # When you work on Go projects
+-- brew install terraform     # When you work on Terraform files
 -- brew install php composer  # When you work on PHP projects
 
 -- Safely clear any existing write‑based groups (no error if they don't exist)
@@ -388,6 +389,7 @@ require("lazy").setup({
 					"gosum",
 					"php",
 					"sql",
+					"terraform",
 				},
 				highlight = { enable = true }, -- Enable syntax highlighting
 				indent = { enable = true }, -- Enable smart indentation
@@ -467,6 +469,8 @@ require("lazy").setup({
 					"isort",
 					"flake8",
 					"sqls",
+					"terraform-ls",
+					"tflint",
 				},
 			})
 		end,
@@ -531,6 +535,13 @@ require("lazy").setup({
 						stdin = true,
 						env = { PATH = vim.fn.getcwd() .. "/vendor/bin:" .. vim.env.PATH },
 					},
+
+					-- Terraform
+					terraform_fmt = {
+						command = "terraform",
+						args = { "fmt", "-" },
+						stdin = true,
+					},
 				},
 
 				formatters_by_ft = {
@@ -546,6 +557,7 @@ require("lazy").setup({
 					go = { "goimports" },
 					php = { "phpcbf" },
 					python = { "isort", "black" },
+					terraform = { "terraform_fmt" },
 				},
 
 				-- (optional) your existing save hook settings
@@ -604,7 +616,7 @@ require("lazy").setup({
 				go = { "golangcilint" },
 				php = { "phpstan" },
 				python = { "flake8" },
-				-- sql = { "sqlfluff" },
+				terraform = { "tflint" },
 			}
 		end,
 	},
@@ -786,6 +798,22 @@ require("lazy").setup({
 							--   user = "root",
 							--   database = "mydb"
 							-- }
+						},
+					},
+				},
+			})
+
+			lspconfig.terraformls.setup({
+				on_attach = on_attach,
+				flags = short_flags,
+				filetypes = { "terraform", "tf" },
+				settings = {
+					terraform = {
+						format = {
+							enable = true,
+						},
+						validate = {
+							enable = true,
 						},
 					},
 				},
