@@ -916,13 +916,58 @@ require("lazy").setup({
 							icon = "",
 						},
 						"diff",
-						"diagnostics",
 					},
 					lualine_c = {
 						{
-							"filename",
+							function()
+								-- Get diagnostics
+								local diagnostics = vim.diagnostic.get(0)
+								local error_count = #vim.tbl_filter(function(d)
+									return d.severity == 1
+								end, diagnostics)
+								local warn_count = #vim.tbl_filter(function(d)
+									return d.severity == 2
+								end, diagnostics)
+								local info_count = #vim.tbl_filter(function(d)
+									return d.severity == 3
+								end, diagnostics)
+								local hint_count = #vim.tbl_filter(function(d)
+									return d.severity == 4
+								end, diagnostics)
+
+								-- Build diagnostics string
+								local diag_str = ""
+								if error_count > 0 then
+									diag_str = diag_str .. "◯" .. error_count .. " "
+								end
+								if warn_count > 0 then
+									diag_str = diag_str .. "△" .. warn_count .. " "
+								end
+								if info_count > 0 then
+									diag_str = diag_str .. "○" .. info_count .. " "
+								end
+								if hint_count > 0 then
+									diag_str = diag_str .. "◇" .. hint_count .. " "
+								end
+
+								-- Get filename
+								local filename = vim.fn.expand("%:t")
+								if filename == "" then
+									filename = "[No Name]"
+								end
+
+								-- Combine with custom styling
+								if diag_str ~= "" then
+									return string.format(
+										"%%#DiagnosticSection#%s%%#Arrow#\u{E0B0}%%#FilenameSection# %s",
+										diag_str:gsub("%s+$", ""),
+										filename
+									)
+								else
+									return filename
+								end
+							end,
 							color = { fg = "#ffffff", bg = "#1c1c1c" },
-							path = 1,
 						},
 					},
 					lualine_x = { "encoding", "fileformat", "filetype" },
@@ -930,6 +975,13 @@ require("lazy").setup({
 					lualine_z = { "location" },
 				},
 			})
+
+			-- Create custom highlight groups
+			vim.cmd([[
+      highlight DiagnosticSection guifg=#ffffff guibg=#2a2a2a
+      highlight Arrow guifg=#2a2a2a guibg=#1c1c1c
+      highlight FilenameSection guifg=#ffffff guibg=#1c1c1c
+    ]])
 		end,
 	},
 
