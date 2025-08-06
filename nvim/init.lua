@@ -720,6 +720,23 @@ require("lazy").setup({
 			lspconfig.eslint.setup({
 				on_attach = on_attach,
 				flags = short_flags,
+				root_dir = function(fname)
+					local root = require("lspconfig.util").root_pattern(
+						".eslintrc.js",
+						".eslintrc.cjs",
+						".eslintrc.json",
+						"eslint.config.js",
+						"package.json"
+					)(fname)
+
+					-- Only start if we have ESLint config
+					if root then
+						local has_config = vim.fn.filereadable(root .. "/package.json") == 1
+							or vim.fn.glob(root .. "/.eslintrc.*") ~= ""
+						return has_config and root or nil
+					end
+					return nil
+				end,
 				settings = {
 					eslint = {
 						enable = true,
@@ -727,15 +744,6 @@ require("lazy").setup({
 						autoFixOnSave = true,
 					},
 				},
-				root_dir = function(fname)
-					return require("lspconfig.util").root_pattern(
-						".eslintrc.js",
-						".eslintrc.cjs",
-						".eslintrc.json",
-						"eslint.config.js",
-						"package.json"
-					)(fname)
-				end,
 			})
 
 			lspconfig.pyright.setup({
