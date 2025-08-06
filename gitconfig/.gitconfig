@@ -1,0 +1,26 @@
+# This is Git's per-user configuration file.
+# Need to brew install fzf for dirdiff and mergetool
+[user]
+	email = digitalwatergun@gmail.com
+	name = DigitalWatergun 
+[credential]
+	helper = osxkeychain
+[merge]
+  tool = nvimdiff
+  conflictstyle = diff3
+[mergetool "nvimdiff"]
+  cmd = nvim -d \"$LOCAL\" \"$MERGED\" \"$BASE\" \"$REMOTE\" -c \"wincmd w\" -c \"wincmd J\" && read -p 'Press any key to resume...'
+[mergetool]
+  keepBackup = false
+  prompt = false
+[diff]
+  tool = nvimdiff
+[difftool "nvimdiff"]
+  cmd = nvim -d \"$LOCAL\" \"$REMOTE\" -c \"wincmd w\" -c \"wincmd L\" 
+[difftool "nvimdirdiff"]
+  cmd = nvim '+next' '+execute \"DirDiff\" argv(0) argv(1)' $LOCAL $REMOTE && read -p 'Press any key to resume...'
+[difftool]
+  keepBackup = false
+  prompt = true
+[alias]
+  dirdiff = difftool --ignore-submodules --dir-diff --no-symlinks --tool=nvimdirdiff

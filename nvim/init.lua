@@ -1,3 +1,12 @@
+-- CORE REQUIREMENTS
+-- brew install ripgrep git make
+--
+-- # Then add languages as you use them:
+-- brew install python3       # When you work on Python projects
+-- brew install node          # When you work on JS/TS projects
+-- brew install go            # When you work on Go projects
+-- brew install php composer  # When you work on PHP projects
+
 -- Safely clear any existing write‑based groups (no error if they don't exist)
 pcall(vim.api.nvim_clear_autocmds, { group = "AutoRefresh" })
 pcall(vim.api.nvim_clear_autocmds, { group = "NvimTreeAutoRefresh" })
@@ -103,7 +112,6 @@ require("lazy").setup({
 		"nvim-telescope/telescope.nvim",
 		dependencies = {
 			"nvim-lua/plenary.nvim",
-			-- This native extension makes sorting much faster
 			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
 		},
 		config = function()
@@ -179,10 +187,7 @@ require("lazy").setup({
 
 				pickers = {
 					find_files = {
-						-- Use fd if available (faster than find)
 						find_command = { "rg", "--files", "--hidden", "--glob", "!.git/*" },
-						-- Alternative if you don't have rg:
-						-- find_command = { "fd", "--type", "f", "--hidden", "--exclude", ".git" },
 					},
 
 					live_grep = {
@@ -209,8 +214,7 @@ require("lazy").setup({
 				},
 			})
 
-			-- Load the fzf extension for much better performance
-			telescope.load_extension("fzf")
+			telescope.load_extension("fzf") -- Load the fzf extension for much better performance
 		end,
 		keys = {
 			{ "<C-p>", "<cmd>Telescope find_files<cr>", desc = "Find files" },
@@ -383,6 +387,7 @@ require("lazy").setup({
 					"gomod",
 					"gosum",
 					"php",
+					"sql",
 				},
 				highlight = { enable = true }, -- Enable syntax highlighting
 				indent = { enable = true }, -- Enable smart indentation
@@ -461,6 +466,7 @@ require("lazy").setup({
 					"black",
 					"isort",
 					"flake8",
+					"sqls",
 				},
 			})
 		end,
@@ -598,6 +604,7 @@ require("lazy").setup({
 				go = { "golangcilint" },
 				php = { "phpstan" },
 				python = { "flake8" },
+				-- sql = { "sqlfluff" },
 			}
 		end,
 	},
@@ -627,7 +634,7 @@ require("lazy").setup({
 		cond = vim.fn.executable("git") == 1, -- only load if 'git' is installed
 		config = function()
 			require("gitblame").setup({
-				enabled = true, -- enable virtual text blame (default: false)
+				enabled = false, -- enable virtual text blame (default: false)
 				delay = 500, -- delay in ms before blame appears (default: 1000)
 				virtual_text_pos = "eol", -- where to show the text: 'eol' | 'inline' | 'right_align' (default: 'eol')
 				date_format = "%Y-%m-%d", -- date format (same as strftime)
@@ -635,21 +642,6 @@ require("lazy").setup({
 			})
 			vim.keymap.set("n", "<leader>gb", "<cmd>GitBlameToggle<CR>", { desc = "Toggle Git blame virtual text" }) -- toggle with <leader>gb
 		end,
-	},
-
-	-- Git Conflicts (git-conflict.nvim)
-	-- Buffer-local mappings installed when a Git conflict is detected:
-	--   co   → choose “ours”   (keep your current changes)
-	--   ct   → choose “theirs” (keep incoming changes)
-	--   cb   → choose both     (keep both sets of changes)
-	--   c0   → choose none     (remove all conflict markers)
-	--   ]x   → jump to NEXT conflict hunk
-	--   [x   → jump to PREVIOUS conflict hunk
-	{
-		"akinsho/git-conflict.nvim",
-		version = "*",
-		event = "BufReadPre",
-		config = true, -- auto-runs require('git-conflict').setup()
 	},
 
 	-- LSP
@@ -773,6 +765,27 @@ require("lazy").setup({
 						files = { maxSize = 5000000 }, -- Allow larger files if needed
 						environment = {
 							includePaths = { "vendor/" }, -- Composer dependencies
+						},
+					},
+				},
+			})
+
+			lspconfig.sqls.setup({
+				on_attach = on_attach,
+				flags = short_flags,
+				filetypes = { "sql" },
+				settings = {
+					sqls = {
+						connections = {
+							-- You can add database connections here if needed
+							-- {
+							--   name = "mydb",
+							--   adapter = "mysql",
+							--   host = "localhost",
+							--   port = 3306,
+							--   user = "root",
+							--   database = "mydb"
+							-- }
 						},
 					},
 				},
@@ -1062,8 +1075,13 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	group = save_hooks,
 	pattern = "*",
 	callback = function()
-		conform.format({ lsp_fallback = true })
 		local ft = vim.bo.filetype
+
+		-- Skip formatting for SQL files entirely
+		if ft ~= "sql" then
+			conform.format({ lsp_fallback = true })
+		end
+
 		if lint.linters_by_ft[ft] then
 			lint.try_lint()
 		end
