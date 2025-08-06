@@ -569,57 +569,156 @@ require("lazy").setup({
 		end,
 	},
 
-	-- Linting
+	-- Linting with selective loading based on project detection
 	{
 		"mfussenegger/nvim-lint",
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			local lint = require("lint")
 			local util = require("lspconfig.util")
-			local eslint = lint.linters.eslint_d
 
-			eslint.cwd = function(bufnr)
-				return util.root_pattern(
-					".eslintrc.js",
-					".eslintrc.cjs",
-					".eslintrc.json",
-					"eslint.config.js",
-					"package.json"
-				)(vim.api.nvim_buf_get_name(bufnr)) or vim.fn.getcwd()
+			-- Project detection function (same as LSP config) - detects what linters are needed
+			local function detect_project_features()
+				local cwd = vim.fn.getcwd()
+
+				-- Helper function to check if file exists
+				local function file_exists(path)
+					return vim.fn.filereadable(path) == 1
+				end
+
+				-- Helper function to check if directory exists
+				local function dir_exists(path)
+					return vim.fn.isdirectory(path) == 1
+				end
+
+				-- Only check for config files and common directories - no recursive searches (performance optimized)
+				local features = {}
+
+				-- JavaScript/TypeScript detection - looks for config files and source files
+				features.has_js_ts = file_exists(cwd .. "/package.json")
+					or file_exists(cwd .. "/tsconfig.json")
+					or dir_exists(cwd .. "/node_modules")
+
+				-- ESLint detection (more specific) - only if there's actually ESLint config
+				features.has_eslint = file_exists(cwd .. "/package.json")
+					and (
+						file_exists(cwd .. "/.eslintrc.js")
+						or file_exists(cwd .. "/.eslintrc.json")
+						or file_exists(cwd .. "/.eslintrc.cjs")
+						or file_exists(cwd .. "/.eslintrc.mjs")
+						or file_exists(cwd .. "/.eslintrc.yaml")
+						or file_exists(cwd .. "/.eslintrc.yml")
+						or file_exists(cwd .. "/eslint.config.js")
+						or file_exists(cwd .. "/eslint.config.mjs")
+						or file_exists(cwd .. "/eslint.config.cjs")
+					)
+
+				-- Go detection - looks for go.mod or .go files
+				features.has_go = file_exists(cwd .. "/go.mod")
+
+				-- Python detection - looks for Python project files or .py files
+				features.has_python = file_exists(cwd .. "/requirements.txt")
+					or file_exists(cwd .. "/pyproject.toml")
+					or file_exists(cwd .. "/setup.py")
+					or file_exists(cwd .. "/Pipfile")
+
+				-- PHP detection - looks for composer.json or .php files
+				features.has_php = file_exists(cwd .. "/composer.json")
+
+				-- Terraform detection - looks for .tf files or terraform lock file
+				features.has_terraform = file_exists(cwd .. "/.terraform.lock.hcl") or dir_exists(cwd .. "/.terraform")
+
+				return features
 			end
 
-			-- Skip eslint_d completely if no config is found
-			eslint.condition = function(ctx)
-				return vim.fn.filereadable(ctx.cwd .. "/package.json") == 1
-					or vim.fn.glob(ctx.cwd .. "/.eslintrc.*") ~= ""
+			local project = detect_project_features()
+
+			-- Configure ESLint linter only if project uses it
+			if project.has_eslint then
+				local eslint = lint.linters.eslint_d
+
+				eslint.cwd = function(bufnr)
+					return util.root_pattern(
+						".eslintrc.js",
+						".eslintrc.cjs",
+						".eslintrc.json",
+						"eslint.config.js",
+						"package.json"
+					)(vim.api.nvim_buf_get_name(bufnr)) or vim.fn.getcwd()
+				end
+
+				-- Skip eslint_d completely if no config is found
+				eslint.condition = function(ctx)
+					return vim.fn.filereadable(ctx.cwd .. "/package.json") == 1
+						or vim.fn.glob(ctx.cwd .. "/.eslintrc.*") ~= ""
+				end
 			end
 
-			lint.linters.phpstan = {
-				cmd = "phpstan",
-				args = { "analyse", "--error-format", "raw", "$FILENAME" },
-				stream = "stdout",
-				ignore_exitcode = true,
-			}
+			-- Configure PHP linter (PHPStan) based on project detection
+			if project.has_php then
+				lint.linters.phpstan = {
+					cmd = "phpstan",
+					args = { "analyse", "--error-format", "raw", "$FILENAME" },
+					stream = "stdout",
+					ignore_exitcode = true,
+				}
+			end
 
-			lint.linters.flake8 = {
-				cmd = "flake8",
-				args = { "--format=%f:%l:%c: %m" },
-				stdin = false,
-				stream = "stdout",
-				ignore_exitcode = true,
-				parser = require("lint.parser").from_errorformat("%f:%l:%c: %m"),
-			}
+			-- Configure Python linter (Flake8) based on project detection
+			if project.has_python then
+				lint.linters.flake8 = {
+					cmd = "flake8",
+					args = { "--format=%f:%l:%c: %m" },
+					stdin = false,
+					stream = "stdout",
+					ignore_exitcode = true,
+					parser = require("lint.parser").from_errorformat("%f:%l:%c: %m"),
+				}
+			end
 
-			lint.linters_by_ft = {
-				javascript = { "eslint_d" },
-				typescript = { "eslint_d" },
-				javascriptreact = { "eslint_d" },
-				typescriptreact = { "eslint_d" },
-				go = { "golangcilint" },
-				php = { "phpstan" },
-				python = { "flake8" },
-				terraform = { "tflint" },
-			}
+			-- Only set up linters for detected project types (memory efficient approach)
+			local linters_by_ft = {}
+
+			-- ESLint for JavaScript/TypeScript projects (using eslint_d for better performance)
+			if project.has_eslint then
+				linters_by_ft.javascript = { "eslint_d" }
+				linters_by_ft.typescript = { "eslint_d" }
+				linters_by_ft.javascriptreact = { "eslint_d" }
+				linters_by_ft.typescriptreact = { "eslint_d" }
+				print("🟢 ESLint linting enabled for this project")
+			end
+
+			-- Go linting (golangci-lint) - comprehensive Go linter
+			if project.has_go then
+				linters_by_ft.go = { "golangcilint" }
+				print("🟢 Go linting enabled for this project")
+			end
+
+			-- PHP linting (PHPStan) - static analysis for PHP
+			if project.has_php then
+				linters_by_ft.php = { "phpstan" }
+				print("🟢 PHP linting enabled for this project")
+			end
+
+			-- Python linting (Flake8) - style and error checking for Python
+			if project.has_python then
+				linters_by_ft.python = { "flake8" }
+				print("🟢 Python linting enabled for this project")
+			end
+
+			-- Terraform linting (TFLint) - Terraform configuration linter
+			if project.has_terraform then
+				linters_by_ft.terraform = { "tflint" }
+				print("🟢 Terraform linting enabled for this project")
+			end
+
+			-- Apply the detected linter configuration
+			lint.linters_by_ft = linters_by_ft
+
+			-- Show summary of what was configured
+			if next(linters_by_ft) == nil then
+				print("⚪ No linters configured for this project type")
+			end
 		end,
 	},
 
@@ -658,7 +757,7 @@ require("lazy").setup({
 		end,
 	},
 
-	-- LSP
+	-- LSP with selective starting based on project detection
 	{
 		"neovim/nvim-lspconfig",
 		dependencies = {
@@ -666,157 +765,430 @@ require("lazy").setup({
 			"WhoIsSethDaniel/mason-tool-installer.nvim",
 		},
 		config = function()
-			local lspconfig = require("lspconfig")
+			-- Wrap everything in pcall to catch errors
+			local ok, err = pcall(function()
+				local lspconfig = require("lspconfig")
 
-			-- Shared on_attach function to avoid repetition
-			local function on_attach(_, bufnr)
-				local bufopts = { noremap = true, silent = true, buffer = bufnr }
+				-- Shared on_attach function to avoid repetition
+				local function on_attach(_, bufnr)
+					local bufopts = { noremap = true, silent = true, buffer = bufnr }
 
-				-- LSP-related keymaps for navigating and interacting with language server features
-				vim.keymap.set("n", "gD", vim.lsp.buf.declaration, bufopts) -- Go to declaration of symbol
-				vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts) -- Go to definition of symbol
-				vim.keymap.set("n", "K", vim.lsp.buf.hover, bufopts) -- Show hover information (documentation)
-				vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts) -- Go to implementation of symbol
-				vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, bufopts) -- Show function signature help
-				vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, bufopts) -- Rename symbol under cursor
-				vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, bufopts) -- Trigger code action menu
-				vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts) -- Show references to symbol
+					-- LSP-related keymaps for navigating and interacting with language server features
+					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, bufopts) -- Go to declaration of symbol
+					vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts) -- Go to definition of symbol
+					vim.keymap.set("n", "K", vim.lsp.buf.hover, bufopts) -- Show hover information (documentation)
+					vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts) -- Go to implementation of symbol
+					vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, bufopts) -- Show function signature help
+					vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, bufopts) -- Rename symbol under cursor
+					vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, bufopts) -- Trigger code action menu
+					vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts) -- Show references to symbol
 
-				-- Diagnostic keymaps for working with errors, warnings, hints, etc.
-				vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, bufopts) -- Open floating window with diagnostic info
-				vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, bufopts) -- Go to previous diagnostic in buffer
-				vim.keymap.set("n", "]d", vim.diagnostic.goto_next, bufopts) -- Go to next diagnostic in buffer
-				vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, bufopts) -- Populate location list with diagnostics
+					-- Diagnostic keymaps for working with errors, warnings, hints, etc.
+					vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, bufopts) -- Open floating window with diagnostic info
+					vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, bufopts) -- Go to previous diagnostic in buffer
+					vim.keymap.set("n", "]d", vim.diagnostic.goto_next, bufopts) -- Go to next diagnostic in buffer
+					vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, bufopts) -- Populate location list with diagnostics
+				end
+
+				local short_flags = { debounce_text_changes = 50 }
+
+				-- Project detection function - automatically detects what LSP servers are needed
+				local function detect_project_features()
+					local cwd = vim.fn.getcwd()
+
+					-- Helper function to check if file exists
+					local function file_exists(path)
+						return vim.fn.filereadable(path) == 1
+					end
+
+					-- Helper function to check if directory exists
+					local function dir_exists(path)
+						return vim.fn.isdirectory(path) == 1
+					end
+
+					-- Only check for config files and common directories - no recursive searches (performance optimized)
+					local features = {}
+
+					-- Lua detection - looks for Lua project files or nvim config
+					local nvim_config_path = vim.fn.stdpath("config")
+					local current_file = vim.fn.expand("%:p") -- get full path of current file
+					features.has_lua = file_exists(cwd .. "/.luarc.json")
+						or file_exists(cwd .. "/init.lua")
+						or string.find(cwd, nvim_config_path, 1, true) -- nvim config directory (working dir)
+						or string.find(current_file, nvim_config_path, 1, true) -- nvim config file (current file)
+						or dir_exists(cwd .. "/lua") -- common Lua project structure
+
+					-- JavaScript/TypeScript detection - looks for config files and source files
+					features.has_js_ts = file_exists(cwd .. "/package.json")
+						or file_exists(cwd .. "/tsconfig.json")
+						or dir_exists(cwd .. "/node_modules")
+
+					-- ESLint detection (more specific) - only if there's actually ESLint config
+					features.has_eslint = file_exists(cwd .. "/package.json")
+						and (
+							file_exists(cwd .. "/.eslintrc.js")
+							or file_exists(cwd .. "/.eslintrc.json")
+							or file_exists(cwd .. "/.eslintrc.cjs")
+							or file_exists(cwd .. "/.eslintrc.mjs")
+							or file_exists(cwd .. "/.eslintrc.yaml")
+							or file_exists(cwd .. "/.eslintrc.yml")
+							or file_exists(cwd .. "/eslint.config.js")
+							or file_exists(cwd .. "/eslint.config.mjs")
+							or file_exists(cwd .. "/eslint.config.cjs")
+						)
+
+					-- Go detection - looks for go.mod or .go files
+					features.has_go = file_exists(cwd .. "/go.mod")
+
+					-- Python detection - looks for Python project files or .py files
+					features.has_python = file_exists(cwd .. "/requirements.txt")
+						or file_exists(cwd .. "/pyproject.toml")
+						or file_exists(cwd .. "/setup.py")
+						or file_exists(cwd .. "/Pipfile")
+
+					-- PHP detection - looks for composer.json or .php files
+					features.has_php = file_exists(cwd .. "/composer.json")
+
+					-- SQL detection - looks for SQL directories or files
+					features.has_sql = dir_exists(cwd .. "/sql")
+						or dir_exists(cwd .. "/migrations")
+						or file_exists(cwd .. "/schema.sql")
+
+					-- Terraform detection - looks for .tf files or terraform lock file
+					features.has_terraform = file_exists(cwd .. "/.terraform.lock.hcl")
+						or dir_exists(cwd .. "/.terraform")
+
+					return features
+				end
+
+				-- Detect current project features
+				local project = detect_project_features()
+
+				print("🔍 LSP Detection Results:")
+				print("  Lua: " .. (project.has_lua and "✅" or "❌"))
+				print("  JS/TS: " .. (project.has_js_ts and "✅" or "❌"))
+				print("  ESLint: " .. (project.has_eslint and "✅" or "❌"))
+				print("  Go: " .. (project.has_go and "✅" or "❌"))
+				print("  Python: " .. (project.has_python and "✅" or "❌"))
+				print("  PHP: " .. (project.has_php and "✅" or "❌"))
+				print("  SQL: " .. (project.has_sql and "✅" or "❌"))
+				print("  Terraform: " .. (project.has_terraform and "✅" or "❌"))
+
+				-- Lua setup - only for Lua projects and nvim configuration
+				if project.has_lua then
+					print("🟢 Starting Lua LSP")
+					lspconfig.lua_ls.setup({
+						on_attach = on_attach,
+						flags = short_flags,
+						settings = {
+							Lua = {
+								diagnostics = {
+									globals = { "vim" },
+								},
+							},
+						},
+					})
+				end
+
+				-- TypeScript setup - only for JavaScript/TypeScript projects
+				if project.has_js_ts then
+					print("🟢 Starting TypeScript LSP")
+					lspconfig.ts_ls.setup({
+						on_attach = on_attach,
+						flags = short_flags,
+					})
+				end
+
+				-- ESLint setup - only if project has ESLint configuration. Need to run "npm install -g vscode-langservers-extracted"
+				if project.has_eslint then
+					print("🟢 Starting ESLint LSP")
+					lspconfig.eslint.setup({
+						on_attach = on_attach,
+						flags = short_flags,
+						root_dir = function(fname)
+							local root = require("lspconfig.util").root_pattern(
+								".eslintrc.js",
+								".eslintrc.cjs",
+								".eslintrc.json",
+								"eslint.config.js",
+								"package.json"
+							)(fname)
+
+							-- Only start if we have ESLint config
+							if root then
+								local has_config = vim.fn.filereadable(root .. "/package.json") == 1
+									or vim.fn.glob(root .. "/.eslintrc.*") ~= ""
+								return has_config and root or nil
+							end
+							return nil
+						end,
+						settings = {
+							eslint = {
+								enable = true,
+								packageManager = "npm",
+								autoFixOnSave = true,
+							},
+						},
+					})
+				end
+
+				-- Golang setup - only for Go projects
+				if project.has_go then
+					print("🟢 Starting Go LSP")
+					lspconfig.gopls.setup({
+						on_attach = on_attach,
+						flags = short_flags,
+						settings = {
+							gopls = {
+								analyses = { unusedparams = true, shadow = true },
+								staticcheck = true,
+							},
+						},
+					})
+				end
+
+				-- Python setup - only for Python projects
+				if project.has_python then
+					print("🟢 Starting Python LSP")
+					lspconfig.pyright.setup({
+						on_attach = on_attach,
+						flags = short_flags,
+						before_init = function(_, config)
+							config.settings = config.settings or {}
+							config.settings.python = config.settings.python or {}
+							config.settings.python.pythonPath = find_project_python()
+						end,
+						settings = {
+							python = {
+								analysis = {
+									typeCheckingMode = "basic",
+									autoSearchPaths = true,
+									useLibraryCodeForTypes = true,
+								},
+							},
+						},
+					})
+				end
+
+				-- PHP setup - only for PHP projects
+				if project.has_php then
+					print("🟢 Starting PHP LSP")
+					lspconfig.phpactor.setup({
+						on_attach = on_attach,
+						flags = short_flags,
+						filetypes = { "php" },
+						init_options = {
+							["language_server.diagnostics_on_update"] = false,
+							["language_server.diagnostics_on_save"] = false,
+						},
+					})
+				end
+
+				-- SQL setup - only for projects with SQL files
+				if project.has_sql then
+					print("🟢 Starting SQL LSP")
+					lspconfig.sqls.setup({
+						on_attach = on_attach,
+						flags = short_flags,
+						filetypes = { "sql" },
+						settings = {
+							sqls = {
+								connections = {
+									-- You can add database connections here if needed
+									-- {
+									--   name = "mydb",
+									--   adapter = "mysql",
+									--   host = "localhost",
+									--   port = 3306,
+									--   user = "root",
+									--   database = "mydb"
+									-- }
+								},
+							},
+						},
+					})
+				end
+
+				-- Terraform setup - only for Terraform projects
+				if project.has_terraform then
+					print("🟢 Starting Terraform LSP")
+					lspconfig.terraformls.setup({
+						on_attach = on_attach,
+						flags = short_flags,
+						filetypes = { "terraform", "tf" },
+						settings = {
+							terraform = {
+								format = {
+									enable = true,
+								},
+								validate = {
+									enable = true,
+								},
+							},
+						},
+					})
+				end
+			end)
+
+			if not ok then
+				print("❌ LSP Configuration Error: " .. tostring(err))
 			end
 
-			local short_flags = { debounce_text_changes = 50 }
+			-- Add command to show the same detection info you see on startup
+			vim.api.nvim_create_user_command("LspStatus", function()
+				local cwd = vim.fn.getcwd()
 
-			-- TypeScript setup
-			lspconfig.ts_ls.setup({
-				on_attach = on_attach,
-				flags = short_flags,
-			})
+				-- Helper functions (same as above)
+				local function file_exists(path)
+					return vim.fn.filereadable(path) == 1
+				end
 
-			-- Lua setup
-			lspconfig.lua_ls.setup({
-				on_attach = on_attach,
-				flags = short_flags,
-				settings = {
-					Lua = {
-						diagnostics = {
-							globals = { "vim" },
-						},
-					},
-				},
-			})
+				local function dir_exists(path)
+					return vim.fn.isdirectory(path) == 1
+				end
 
-			-- Golang setup
-			lspconfig.gopls.setup({
-				on_attach = on_attach,
-				flags = short_flags,
-				settings = {
-					gopls = {
-						analyses = { unusedparams = true, shadow = true },
-						staticcheck = true,
-					},
-				},
-			})
+				-- Re-run the same detection logic
+				local features = {}
+				local nvim_config_path = vim.fn.stdpath("config")
+				local current_file = vim.fn.expand("%:p") -- get full path of current file
+				features.has_lua = file_exists(cwd .. "/.luarc.json")
+					or file_exists(cwd .. "/init.lua")
+					or string.find(cwd, nvim_config_path, 1, true) -- nvim config directory (working dir)
+					or string.find(current_file, nvim_config_path, 1, true) -- nvim config file (current file)
+					or dir_exists(cwd .. "/lua") -- common Lua project structure
+				features.has_js_ts = file_exists(cwd .. "/package.json")
+					or file_exists(cwd .. "/tsconfig.json")
+					or dir_exists(cwd .. "/node_modules")
+				features.has_eslint = file_exists(cwd .. "/package.json")
+					and (
+						file_exists(cwd .. "/.eslintrc.js")
+						or file_exists(cwd .. "/.eslintrc.json")
+						or file_exists(cwd .. "/.eslintrc.cjs")
+						or file_exists(cwd .. "/.eslintrc.mjs")
+						or file_exists(cwd .. "/.eslintrc.yaml")
+						or file_exists(cwd .. "/.eslintrc.yml")
+						or file_exists(cwd .. "/eslint.config.js")
+						or file_exists(cwd .. "/eslint.config.mjs")
+						or file_exists(cwd .. "/eslint.config.cjs")
+					)
+				features.has_go = file_exists(cwd .. "/go.mod")
+				features.has_python = file_exists(cwd .. "/requirements.txt")
+					or file_exists(cwd .. "/pyproject.toml")
+					or file_exists(cwd .. "/setup.py")
+					or file_exists(cwd .. "/Pipfile")
+				features.has_php = file_exists(cwd .. "/composer.json")
+				features.has_sql = dir_exists(cwd .. "/sql")
+					or dir_exists(cwd .. "/migrations")
+					or file_exists(cwd .. "/schema.sql")
+				features.has_terraform = file_exists(cwd .. "/.terraform.lock.hcl") or dir_exists(cwd .. "/.terraform")
 
-			-- ESLint setup. Need to run "npm install -g vscode-langservers-extracted"
-			lspconfig.eslint.setup({
-				on_attach = on_attach,
-				flags = short_flags,
-				root_dir = function(fname)
-					local root = require("lspconfig.util").root_pattern(
-						".eslintrc.js",
-						".eslintrc.cjs",
-						".eslintrc.json",
-						"eslint.config.js",
-						"package.json"
-					)(fname)
+				-- Show the exact same format as startup
+				print("🔍 LSP Detection Results:")
+				print("  Lua: " .. (features.has_lua and "✅" or "❌"))
+				print("  JS/TS: " .. (features.has_js_ts and "✅" or "❌"))
+				print("  ESLint: " .. (features.has_eslint and "✅" or "❌"))
+				print("  Go: " .. (features.has_go and "✅" or "❌"))
+				print("  Python: " .. (features.has_python and "✅" or "❌"))
+				print("  PHP: " .. (features.has_php and "✅" or "❌"))
+				print("  SQL: " .. (features.has_sql and "✅" or "❌"))
+				print("  Terraform: " .. (features.has_terraform and "✅" or "❌"))
 
-					-- Only start if we have ESLint config
-					if root then
-						local has_config = vim.fn.filereadable(root .. "/package.json") == 1
-							or vim.fn.glob(root .. "/.eslintrc.*") ~= ""
-						return has_config and root or nil
+				-- Show which LSP servers are currently running (using new API)
+				print("")
+				print("🔧 Currently Running LSP Servers:")
+				local clients = vim.lsp.get_clients()
+				if #clients == 0 then
+					print("  No LSP servers running")
+				else
+					for _, client in ipairs(clients) do
+						print("  🟢 " .. client.name)
 					end
-					return nil
-				end,
-				settings = {
-					eslint = {
-						enable = true,
-						packageManager = "npm",
-						autoFixOnSave = true,
-					},
-				},
-			})
+				end
 
-			lspconfig.pyright.setup({
-				on_attach = on_attach,
-				flags = short_flags,
-				before_init = function(_, config)
-					config.settings = config.settings or {}
-					config.settings.python = config.settings.python or {}
-					config.settings.python.pythonPath = find_project_python()
-				end,
-				settings = {
-					python = {
-						analysis = {
-							typeCheckingMode = "basic",
-							autoSearchPaths = true,
-							useLibraryCodeForTypes = true,
-						},
-					},
-				},
-			})
+				-- Show enabled linters
+				print("")
+				print("🔍 Enabled Linters:")
+				local lint_ok, lint = pcall(require, "lint")
+				if lint_ok and lint.linters_by_ft then
+					local current_ft = vim.bo.filetype
+					if current_ft and current_ft ~= "" then
+						local linters = lint.linters_by_ft[current_ft]
+						if linters and #linters > 0 then
+							print("  For " .. current_ft .. ":")
+							for _, linter in ipairs(linters) do
+								print("    🟢 " .. linter)
+							end
+						else
+							print("  No linters configured for filetype: " .. current_ft)
+						end
+					else
+						print("  No filetype detected")
+					end
 
-			lspconfig.phpactor.setup({
-				on_attach = on_attach,
-				flags = short_flags,
-				filetypes = { "php" },
-				init_options = {
-					["language_server.diagnostics_on_update"] = false,
-					["language_server.diagnostics_on_save"] = false,
-				},
-			})
+					-- Show all configured linters by project
+					if features.has_eslint then
+						print("  📁 Project: ESLint (eslint_d)")
+					end
+					if features.has_go then
+						print("  📁 Project: Go (golangci-lint)")
+					end
+					if features.has_python then
+						print("  📁 Project: Python (flake8)")
+					end
+					if features.has_php then
+						print("  📁 Project: PHP (phpstan)")
+					end
+					if features.has_terraform then
+						print("  📁 Project: Terraform (tflint)")
+					end
+				else
+					print("  Linting not available")
+				end
 
-			lspconfig.sqls.setup({
-				on_attach = on_attach,
-				flags = short_flags,
-				filetypes = { "sql" },
-				settings = {
-					sqls = {
-						connections = {
-							-- You can add database connections here if needed
-							-- {
-							--   name = "mydb",
-							--   adapter = "mysql",
-							--   host = "localhost",
-							--   port = 3306,
-							--   user = "root",
-							--   database = "mydb"
-							-- }
-						},
-					},
-				},
-			})
+				-- Show enabled formatters
+				print("")
+				print("🎨 Enabled Formatters:")
+				local conform_ok, conform = pcall(require, "conform")
+				if conform_ok and conform.formatters_by_ft then
+					local current_ft = vim.bo.filetype
+					if current_ft and current_ft ~= "" then
+						local formatters = conform.formatters_by_ft[current_ft]
+						if formatters and #formatters > 0 then
+							print("  For " .. current_ft .. ":")
+							for _, formatter in ipairs(formatters) do
+								print("    🎨 " .. formatter)
+							end
+						else
+							print("  No formatters configured for filetype: " .. current_ft)
+						end
+					end
 
-			lspconfig.terraformls.setup({
-				on_attach = on_attach,
-				flags = short_flags,
-				filetypes = { "terraform", "tf" },
-				settings = {
-					terraform = {
-						format = {
-							enable = true,
-						},
-						validate = {
-							enable = true,
-						},
-					},
-				},
-			})
+					-- Show all configured formatters by project
+					if features.has_lua then
+						print("  📁 Project: Lua (stylua)")
+					end
+					if features.has_js_ts then
+						print("  📁 Project: JS/TS (prettier)")
+					end
+					if features.has_go then
+						print("  📁 Project: Go (goimports)")
+					end
+					if features.has_python then
+						print("  📁 Project: Python (isort, black)")
+					end
+					if features.has_php then
+						print("  📁 Project: PHP (php-cs-fixer)")
+					end
+					if features.has_terraform then
+						print("  📁 Project: Terraform (terraform_fmt)")
+					end
+				else
+					print("  Formatting not available")
+				end
+			end, { desc = "Show LSP detection results, running servers, linters, and formatters" })
+
+			-- Shorter alias for quick access
+			vim.api.nvim_create_user_command("Lsp", "LspStatus", { desc = "Show LSP status (alias)" })
 		end,
 	},
 
