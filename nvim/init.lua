@@ -461,7 +461,6 @@ require("lazy").setup({
 					"goimports",
 					"gofumpt",
 					"golangci-lint",
-					"intelephense",
 					"php-cs-fixer",
 					"phpstan",
 					"pyright",
@@ -471,6 +470,7 @@ require("lazy").setup({
 					"sqls",
 					"terraform-ls",
 					"tflint",
+					"phpactor",
 				},
 			})
 		end,
@@ -527,9 +527,11 @@ require("lazy").setup({
 					},
 
 					-- PHP
-					phpcbf = {
+					["php-cs-fixer"] = {
+						command = "php-cs-fixer",
 						args = {
-							"--stdin-path=" .. "$FILENAME",
+							"fix",
+							"--using-cache=no",
 							"-",
 						},
 						stdin = true,
@@ -555,7 +557,7 @@ require("lazy").setup({
 					markdown = { "prettier" },
 					lua = { "stylua" },
 					go = { "goimports" },
-					php = { "phpcbf" },
+					php = { "php-cs-fixer" },
 					python = { "isort", "black" },
 					terraform = { "terraform_fmt" },
 				},
@@ -769,16 +771,13 @@ require("lazy").setup({
 				},
 			})
 
-			lspconfig.intelephense.setup({
-				on_attach = on_attach, -- reuse your shared on_attach
+			lspconfig.phpactor.setup({
+				on_attach = on_attach,
 				flags = short_flags,
-				settings = {
-					intelephense = {
-						files = { maxSize = 5000000 }, -- Allow larger files if needed
-						environment = {
-							includePaths = { "vendor/" }, -- Composer dependencies
-						},
-					},
+				filetypes = { "php" },
+				init_options = {
+					["language_server.diagnostics_on_update"] = false,
+					["language_server.diagnostics_on_save"] = false,
 				},
 			})
 
