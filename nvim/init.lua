@@ -3,20 +3,13 @@ pcall(vim.api.nvim_clear_autocmds, { group = "AutoRefresh" })
 pcall(vim.api.nvim_clear_autocmds, { group = "NvimTreeAutoRefresh" })
 
 -- On FocusGained: check for external file changes, refresh Git signs, and reload the file‑tree if open
-local last_focus = 0
 local focus_grp = vim.api.nvim_create_augroup("FocusActions", { clear = true })
 vim.api.nvim_create_autocmd("FocusGained", {
 	group = focus_grp,
 	callback = function()
-		local now = vim.loop.hrtime() / 1e6 -- ms
-		if now - last_focus < 1000 then
-			return
-		end
-		last_focus = now
-
-		pcall(vim.cmd, "silent! checktime") -- reload disk-changed buffers
-		pcall(require("gitsigns").refresh) -- refresh git signs
-		local api = require("nvim-tree.api") -- reload nvim-tree if open
+		pcall(vim.cmd, "silent! checktime") -- reload any changed buffers from disk
+		pcall(require("gitsigns").refresh) -- refresh gitsigns gutter
+		local api = require("nvim-tree.api") -- reload nvim-tree if it’s open
 		if api.tree.is_visible() then
 			api.tree.reload()
 		end
@@ -370,59 +363,6 @@ require("lazy").setup({
 		keys = {
 			{ "<leader>e", ":NvimTreeToggle<CR>", desc = "Toggle file explorer" },
 		},
-	},
-
-	-- Oil plugin for file management / view / explorer
-	{
-		"stevearc/oil.nvim",
-		dependencies = { "nvim-tree/nvim-web-devicons" },
-		config = function()
-			local oil = require("oil")
-			local columns = require("oil.columns")
-
-			oil.setup({
-				-- pick exactly the columns you want to see:
-				columns = {
-					columns.icon, -- file/folder icon
-					columns.permissions, -- unix perms
-					columns.size, -- file size
-					columns.mtime, -- last-modified timestamp
-					columns.git_status, -- ▶ staged/unstaged/untracked marks
-					columns.diagnostics, -- ▶ LSP error/warning/hint counts
-				},
-				-- allow two sign-columns (index + worktree / diagnostics)
-				win_options = {
-					-- two sign-columns for index+worktree,
-					-- plus enable absolute line-numbers
-					signcolumn = "yes:2",
-					number = true,
-					relativenumber = false,
-				},
-
-				experimental_watch_for_changes = true,
-
-				view_options = {
-					show_hidden = true,
-				},
-			})
-		end,
-		keys = {
-			{
-				"<leader>o",
-				function()
-					require("oil").open_float()
-				end,
-				desc = "Open oil.nvim file browser",
-			},
-		},
-	},
-
-	{
-		"refractalize/oil-git-status.nvim",
-		dependencies = { "stevearc/oil.nvim" },
-		config = function()
-			require("oil-git-status").setup({})
-		end,
 	},
 
 	-- Syntax highlighting - makes code colorful and properly formatted
@@ -923,6 +863,90 @@ require("lazy").setup({
 			time_interval = 7,
 		},
 	},
+
+	--Lualine
+	{
+		"nvim-lualine/lualine.nvim",
+		dependencies = { "nvim-tree/nvim-web-devicons" },
+		config = function()
+			local custom_theme = {
+				normal = {
+					a = { bg = "#4a90c2", fg = "#ffffff", gui = "bold" },
+					b = { bg = "#84d675", fg = "#000000" },
+					c = { bg = "#1c1c1c", fg = "#ffffff" },
+				},
+				insert = {
+					a = { bg = "#4a90c2", fg = "#ffffff", gui = "bold" },
+					b = { bg = "#84d675", fg = "#000000" },
+					c = { bg = "#1c1c1c", fg = "#ffffff" },
+				},
+				visual = {
+					a = { bg = "#4a90c2", fg = "#ffffff", gui = "bold" },
+					b = { bg = "#84d675", fg = "#000000" },
+					c = { bg = "#1c1c1c", fg = "#ffffff" },
+				},
+				replace = {
+					a = { bg = "#4a90c2", fg = "#ffffff", gui = "bold" },
+					b = { bg = "#84d675", fg = "#000000" },
+					c = { bg = "#1c1c1c", fg = "#ffffff" },
+				},
+				command = {
+					a = { bg = "#4a90c2", fg = "#ffffff", gui = "bold" },
+					b = { bg = "#84d675", fg = "#000000" },
+					c = { bg = "#1c1c1c", fg = "#ffffff" },
+				},
+				inactive = {
+					a = { bg = "#2c2c2c", fg = "#666666" },
+					b = { bg = "#2c2c2c", fg = "#666666" },
+					c = { bg = "#1c1c1c", fg = "#666666" },
+				},
+			}
+
+			require("lualine").setup({
+				options = {
+					theme = custom_theme,
+					component_separators = { left = "\u{E0B1}", right = "\u{E0B3}" },
+					section_separators = { left = "\u{E0B0}", right = "\u{E0B2}" },
+				},
+				sections = {
+					lualine_a = { "mode" },
+					lualine_b = {
+						{
+							"branch",
+							icon = "",
+						},
+						"diff",
+						"diagnostics",
+					},
+					lualine_c = {
+						{
+							"filename",
+							color = { fg = "#ffffff", bg = "#1c1c1c" },
+							path = 1,
+						},
+					},
+					lualine_x = { "encoding", "fileformat", "filetype" },
+					lualine_y = { "progress" },
+					lualine_z = { "location" },
+				},
+			})
+		end,
+	},
+
+	-- DirDiff
+	{
+		"will133/vim-dirdiff",
+		config = function()
+			-- Optional configuration
+			vim.g.DirDiffExcludes = "CVS,*.class,*.exe,.*.swp"
+			vim.g.DirDiffIgnore = "Id:,Revision:,Date:"
+			vim.g.DirDiffSort = 1
+			vim.g.DirDiffWindowSize = 14
+			vim.g.DirDiffInteractive = 0
+			vim.g.DirDiffIgnoreCase = 0
+		end,
+		cmd = { "DirDiff", "DirDiffVim" },
+	},
 }, {
 	performance = {
 		rtp = {
@@ -959,10 +983,6 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	group = save_hooks,
 	pattern = "*",
 	callback = function()
-		if not vim.bo.modified then -- only run format+lint if the buffer is marked modified
-			return
-		end
-
 		conform.format({ lsp_fallback = true })
 		local ft = vim.bo.filetype
 		if lint.linters_by_ft[ft] then
