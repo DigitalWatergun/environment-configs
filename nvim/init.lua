@@ -923,7 +923,6 @@ require("lazy").setup({
 							"branch",
 							icon = "",
 						},
-						-- Remove 'diff' from here
 					},
 					lualine_c = {
 						{
@@ -978,8 +977,8 @@ require("lazy").setup({
 									status_str = status_str .. "-" .. diff_removed .. " "
 								end
 
-								-- Get filename
-								local filename = vim.fn.expand("%:t")
+								-- Get relative path from current working directory
+								local filename = vim.fn.expand("%:.")
 								if filename == "" then
 									filename = "[No Name]"
 								end
