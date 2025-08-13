@@ -73,12 +73,6 @@ vim.opt.lazyredraw = true -- Enable lazy redraw to reduce on-save stutters
 -- Basic keymaps
 vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
-vim.keymap.set(
-	"n",
-	"<leader>tt",
-	":belowright 20split | terminal<CR>",
-	{ desc = "Open terminal in split with 20-lines height" }
-)
 vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, desc = "Terminal → Normal mode" })
 vim.keymap.set("v", "<Tab>", ">gv", { noremap = true, silent = true, desc = "Indent and reselect" })
 vim.keymap.set("v", "<S-Tab>", "<gv", { noremap = true, silent = true, desc = "Unindent and reselect" })
@@ -87,6 +81,35 @@ vim.keymap.set("n", "gv", function()
 	vim.cmd("vsplit")
 	vim.lsp.buf.definition()
 end)
+
+-- Persistent Terminal
+vim.g.persistent_term_buf = vim.g.persistent_term_buf or nil
+
+vim.keymap.set("n", "<leader>tt", function()
+	if vim.g.persistent_term_buf and vim.api.nvim_buf_is_valid(vim.g.persistent_term_buf) then
+		-- Find if terminal is already visible
+		local term_win = nil
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			if vim.api.nvim_win_get_buf(win) == vim.g.persistent_term_buf then
+				term_win = win
+				break
+			end
+		end
+
+		if term_win then -- Terminal is visible, focus it
+			vim.api.nvim_set_current_win(term_win)
+		else -- Terminal exists but not visible, open it
+			vim.cmd("belowright 20split")
+			vim.api.nvim_win_set_buf(0, vim.g.persistent_term_buf)
+		end
+		vim.cmd("startinsert")
+	else -- Create new terminal
+		vim.cmd("belowright 20split | terminal")
+		vim.g.persistent_term_buf = vim.api.nvim_get_current_buf()
+		vim.bo.bufhidden = "hide"
+		vim.bo.buflisted = false
+	end
+end, { desc = "Open persistent terminal" })
 
 -- Project detection function with subdirectory scanning
 local function detect_project_features()
