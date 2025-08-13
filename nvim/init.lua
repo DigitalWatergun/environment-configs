@@ -81,10 +81,13 @@ vim.keymap.set("n", "gv", function()
 	vim.cmd("vsplit")
 	vim.lsp.buf.definition()
 end)
+-- Tab navigation
+vim.keymap.set("n", "<leader>tn", ":tabnext<CR>", { desc = "Next tab" })
+vim.keymap.set("n", "<leader>tp", ":tabprevious<CR>", { desc = "Previous tab" })
+vim.keymap.set("n", "<leader>tc", ":tabclose<CR>", { desc = "Close tab" })
 
 -- Persistent Terminal
 vim.g.persistent_term_buf = vim.g.persistent_term_buf or nil
-
 vim.keymap.set("n", "<leader>tt", function()
 	if vim.g.persistent_term_buf and vim.api.nvim_buf_is_valid(vim.g.persistent_term_buf) then
 		-- Find if terminal is already visible
@@ -99,15 +102,17 @@ vim.keymap.set("n", "<leader>tt", function()
 		if term_win then -- Terminal is visible, focus it
 			vim.api.nvim_set_current_win(term_win)
 		else -- Terminal exists but not visible, open it
-			vim.cmd("belowright 20split")
+			vim.cmd("botright 20split")
 			vim.api.nvim_win_set_buf(0, vim.g.persistent_term_buf)
+			vim.wo.winfixheight = true -- Fix the window height
 		end
 		vim.cmd("startinsert")
 	else -- Create new terminal
-		vim.cmd("belowright 20split | terminal")
+		vim.cmd("botright 20split | terminal")
 		vim.g.persistent_term_buf = vim.api.nvim_get_current_buf()
 		vim.bo.bufhidden = "hide"
 		vim.bo.buflisted = false
+		vim.wo.winfixheight = true -- Fix the window height
 	end
 end, { desc = "Open persistent terminal" })
 
