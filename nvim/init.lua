@@ -81,10 +81,15 @@ vim.keymap.set("n", "gv", function()
 	vim.cmd("vsplit")
 	vim.lsp.buf.definition()
 end)
+vim.keymap.set("n", "gt", function()
+	vim.cmd("tab split")
+	vim.lsp.buf.definition()
+end, { desc = "Go to definition in new tab" })
+
 -- Tab navigation
+vim.keymap.set("n", "<leader>tc", ":tabnew<CR>", { desc = "New tab" })
 vim.keymap.set("n", "<leader>tn", ":tabnext<CR>", { desc = "Next tab" })
 vim.keymap.set("n", "<leader>tp", ":tabprevious<CR>", { desc = "Previous tab" })
-vim.keymap.set("n", "<leader>tc", ":tabclose<CR>", { desc = "Close tab" })
 
 -- Persistent Terminal
 vim.g.persistent_term_buf = vim.g.persistent_term_buf or nil
@@ -716,6 +721,10 @@ require("lazy").setup({
 						save_prev()
 						api.fs.remove()
 					end, buf_opts("Delete"))
+					vim.keymap.set("n", "<C-t>", function()
+						save_prev()
+						api.node.open.tab()
+					end, buf_opts("Open file in new tab"))
 				end,
 			})
 
