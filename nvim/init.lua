@@ -121,6 +121,25 @@ vim.keymap.set("n", "<leader>tt", function()
 	end
 end, { desc = "Open persistent terminal" })
 
+-- Kill / Reset Terminal
+vim.api.nvim_create_user_command("TermKill", function()
+	if vim.g.persistent_term_buf and vim.api.nvim_buf_is_valid(vim.g.persistent_term_buf) then
+		-- First close any windows showing the terminal
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			if vim.api.nvim_win_get_buf(win) == vim.g.persistent_term_buf then
+				vim.api.nvim_win_close(win, true)
+			end
+		end
+
+		-- Then delete the buffer
+		vim.api.nvim_buf_delete(vim.g.persistent_term_buf, { force = true })
+		vim.g.persistent_term_buf = nil
+		print("Terminal buffer killed")
+	else
+		print("No terminal buffer to kill")
+	end
+end, { desc = "Kill the persistent terminal buffer" })
+
 -- Project detection function with subdirectory scanning
 local function detect_project_features()
 	local cwd = vim.fn.getcwd()
