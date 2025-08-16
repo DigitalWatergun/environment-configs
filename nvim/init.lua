@@ -874,8 +874,8 @@ require("lazy").setup({
 					"phpstan",
 					"pyright",
 					"black",
-					"isort",
-					"flake8",
+					"ruff",
+					"ruff-lsp",
 					"sqls",
 					"terraform-ls",
 					"tflint",
@@ -904,12 +904,6 @@ require("lazy").setup({
 			conform.setup({
 				formatters = {
 					-- Python
-					isort = {
-						command = "isort",
-						args = { "--profile", "black", "-" },
-						stdin = true,
-						env = { PATH = venv_path() },
-					},
 					black = {
 						command = "black",
 						args = { "--quiet", "-" },
@@ -967,7 +961,7 @@ require("lazy").setup({
 					lua = { "stylua" },
 					go = { "goimports" },
 					php = { "php-cs-fixer" },
-					python = { "isort", "black" },
+					python = { "ruff_fix", "ruff_format", "black" },
 					terraform = { "terraform_fmt" },
 				},
 
@@ -1051,27 +1045,13 @@ require("lazy").setup({
 				}
 			end
 
-			-- Configure Python linter (Flake8) with virtual env support
+			-- Configure Python linter
 			if project.has_python then
-				-- Try to use project's virtual env flake8
-				local flake8_cmd = "flake8"
-				local venv_paths = { ".venv/bin/flake8", "venv/bin/flake8", "env/bin/flake8" }
-				for _, venv_path in ipairs(venv_paths) do
-					local full_path = vim.fn.getcwd() .. "/" .. venv_path
-					if vim.fn.executable(full_path) == 1 then
-						flake8_cmd = full_path
-						break
-					end
+				local mason_ruff = vim.fn.stdpath("data") .. "/mason/bin/ruff"
+				if vim.fn.executable(mason_ruff) == 1 then
+					lint.linters.ruff = lint.linters.ruff or {}
+					lint.linters.ruff.cmd = mason_ruff
 				end
-
-				lint.linters.flake8 = {
-					cmd = flake8_cmd,
-					stdin = false,
-					args = { "--format=%(path)s:%(row)d:%(col)d: %(code)s %(text)s" },
-					stream = "stdout",
-					ignore_exitcode = true,
-					parser = require("lint.parser").from_errorformat("%f:%l:%c: %m"),
-				}
 			end
 
 			-- Configure Go linter
@@ -1131,7 +1111,7 @@ require("lazy").setup({
 			end
 
 			if project.has_python then
-				linters_by_ft.python = { "flake8" }
+				linters_by_ft.python = { "ruff" }
 				print("🟢 Python linting enabled for this project")
 			end
 
