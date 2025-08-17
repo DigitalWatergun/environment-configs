@@ -923,12 +923,6 @@ require("lazy").setup({
 						stdin = true,
 					},
 
-					-- Go
-					goimports = {
-						args = { "-srcdir=" .. vim.fn.getcwd(), "-" },
-						stdin = true,
-					},
-
 					-- PHP
 					["php-cs-fixer"] = {
 						command = "php-cs-fixer",
@@ -959,7 +953,7 @@ require("lazy").setup({
 					html = { "prettier" },
 					markdown = { "prettier" },
 					lua = { "stylua" },
-					go = { "goimports" },
+					go = { "goimports", "gofumpt" },
 					php = { "php-cs-fixer" },
 					python = { "ruff_fix", "ruff_format", "black" },
 					terraform = { "terraform_fmt" },
