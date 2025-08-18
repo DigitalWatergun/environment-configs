@@ -11,6 +11,9 @@
 -- Safely clear any existing write‑based groups (no error if they don't exist)
 pcall(vim.api.nvim_clear_autocmds, { group = "AutoRefresh" })
 pcall(vim.api.nvim_clear_autocmds, { group = "NvimTreeAutoRefresh" })
+pcall(vim.loader.enable) -- Lua module caching (NVIM ≥0.9)
+vim.g.loaded_netrw = 1 -- fully disable netrw for nvim-tree
+vim.g.loaded_netrwPlugin = 1
 
 -- On FocusGained: check for external file changes, refresh Git signs, and reload the file‑tree if open
 local focus_grp = vim.api.nvim_create_augroup("FocusActions", { clear = true })
@@ -51,7 +54,7 @@ vim.opt.relativenumber = false -- Use absolute line numbers, not relative ones
 vim.opt.tabstop = 2 -- Tab width of 2 spaces
 vim.opt.shiftwidth = 2 -- Indentation width of 2 spaces
 vim.opt.expandtab = true -- Convert tabs to spaces
-vim.opt.wrap = true -- Don't wrap long lines
+vim.opt.wrap = true -- Wrap long lines
 vim.opt.wrapscan = true -- Wrap search back to top of file
 vim.opt.incsearch = true -- Show matches as you type
 vim.opt.ignorecase = true -- Case-insensitive searching
@@ -68,7 +71,7 @@ vim.opt.updatetime = 100 -- Make CursorHold and friends fire more responsively
 vim.opt.hidden = true -- "Hide" (keep in memory) modified buffers instead of blocking
 vim.opt.autowrite = true -- Write current buffer if modified commands like :edit, :make, :checktime
 vim.opt.autowriteall = true -- Write all modified buffers before :next, :rewind, :last, external shell commands, etc.
-vim.opt.lazyredraw = true -- Enable lazy redraw to reduce on-save stutters
+vim.opt.lazyredraw = false -- Lazy redraw to reduce on-save stutters
 
 -- Basic keymaps
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
@@ -1265,7 +1268,7 @@ require("lazy").setup({
 
 				-- TypeScript LSP
 				if project.has_js_ts then
-					table.insert(starting_lsps, "tsserver")
+					table.insert(starting_lsps, "ts_ls")
 					lspconfig.ts_ls.setup({
 						on_attach = on_attach,
 						flags = short_flags,
