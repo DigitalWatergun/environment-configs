@@ -52,7 +52,7 @@ vim.opt.tabstop = 2 -- Tab width of 2 spaces
 vim.opt.shiftwidth = 2 -- Indentation width of 2 spaces
 vim.opt.expandtab = true -- Convert tabs to spaces
 vim.opt.wrap = true -- Don't wrap long lines
-vim.opt.wrapscan = true -- Wrapp search back to top of file
+vim.opt.wrapscan = true -- Wrap search back to top of file
 vim.opt.incsearch = true -- Show matches as you type
 vim.opt.ignorecase = true -- Case-insensitive searching
 vim.opt.smartcase = false -- Case-sensitive if search contains uppercase
@@ -65,13 +65,12 @@ vim.opt.equalalways = true -- Equalize whenever you open/close a split
 vim.opt.eadirection = "both" -- Adjust both height and width
 vim.opt.autoread = true -- Autoreload buffers
 vim.opt.updatetime = 100 -- Make CursorHold and friends fire more responsively
-vim.opt.hidden = true -- "Hide" (keep in memory) modified buffers instead of blockiing
+vim.opt.hidden = true -- "Hide" (keep in memory) modified buffers instead of blocking
 vim.opt.autowrite = true -- Write current buffer if modified commands like :edit, :make, :checktime
 vim.opt.autowriteall = true -- Write all modified buffers before :next, :rewind, :last, external shell commands, etc.
 vim.opt.lazyredraw = true -- Enable lazy redraw to reduce on-save stutters
 
 -- Basic keymaps
-vim.keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
 vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, desc = "Terminal → Normal mode" })
 vim.keymap.set("v", "<Tab>", ">gv", { noremap = true, silent = true, desc = "Indent and reselect" })
