@@ -619,6 +619,7 @@ require("lazy").setup({
 			{ "<leader>fr", "<cmd>Telescope oldfiles<cr>", desc = "Recent files" },
 			{ "<leader>fc", "<cmd>Telescope git_commits<cr>", desc = "Git commits" },
 			{ "<leader>fs", "<cmd>Telescope git_status<cr>", desc = "Git status" },
+			{ "<leader>kk", "<cmd>Telescope keymaps<cr>", desc = "Keymaps browser" },
 		},
 	},
 
