@@ -979,6 +979,12 @@ require("lazy").setup({
 			-- Use the global detect_project_features function
 			local project = _G.detect_project_features()
 
+			-- Configure Typescript / Javascript linter
+			if project.has_eslint then
+				local eslint_d = require("lint.linters.eslint_d")
+				table.insert(eslint_d.args, "--no-warn-ignored")
+			end
+
 			-- Configure PHP linter (PHPStan) with better configuration
 			if project.has_php then
 				-- Check for project-local phpstan first
