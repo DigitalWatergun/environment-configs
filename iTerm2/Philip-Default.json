@@ -33,13 +33,7 @@
     "Alpha Component" : 1,
     "Green Component" : 0.55789834260940552
   },
-  "Ansi 2 Color" : {
-    "Red Component" : 0.40215280652046204,
-    "Color Space" : "sRGB",
-    "Blue Component" : 0.40937861800193787,
-    "Alpha Component" : 1,
-    "Green Component" : 0.8514404296875
-  },
+  "Horizontal Spacing" : 1,
   "Rows" : 50,
   "Default Bookmark" : "No",
   "Right Option Key Sends" : 0,
@@ -248,7 +242,13 @@
     "Green Component" : 0.098039217293262482
   },
   "Guid" : "A98B26C6-3B98-435A-AA5A-FCBCB1EBC955",
-  "Custom Directory" : "No",
+  "Ansi 2 Color" : {
+    "Red Component" : 0.40215280652046204,
+    "Color Space" : "sRGB",
+    "Blue Component" : 0.40937861800193787,
+    "Alpha Component" : 1,
+    "Green Component" : 0.8514404296875
+  },
   "Ansi 3 Color" : {
     "Red Component" : 0.8521728515625,
     "Color Space" : "sRGB",
@@ -299,5 +299,5 @@
     "Alpha Component" : 1,
     "Green Component" : 0.27076071500778198
   },
-  "Horizontal Spacing" : 1
+  "Custom Directory" : "No"
 }
