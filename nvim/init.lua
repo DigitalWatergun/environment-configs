@@ -582,7 +582,11 @@ require("lazy").setup({
 
 				pickers = {
 					find_files = {
-						find_command = { "rg", "--files", "--hidden", "--glob", "!.git/*" },
+						find_command = {
+							"sh",
+							"-c",
+							"(rg --files --glob '!.git/*'; ls .env .env.* 2>/dev/null) | sort -u",
+						},
 					},
 
 					live_grep = {
