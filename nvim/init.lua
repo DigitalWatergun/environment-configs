@@ -72,6 +72,14 @@ vim.opt.hidden = true -- "Hide" (keep in memory) modified buffers instead of blo
 vim.opt.autowrite = true -- Write current buffer if modified commands like :edit, :make, :checktime
 vim.opt.autowriteall = true -- Write all modified buffers before :next, :rewind, :last, external shell commands, etc.
 vim.opt.lazyredraw = false -- Lazy redraw to reduce on-save stutters
+vim.opt.backup = false -- No backup files (file.txt~)
+vim.opt.writebackup = true -- Temporary backup during write
+vim.opt.swapfile = false -- No swap files (.file.txt.swp)
+vim.opt.undofile = true -- Keep but limit:
+vim.opt.undodir = vim.fn.stdpath("data") .. "/undo"
+vim.opt.undolevels = 1000 -- Limit undo history in memory
+vim.opt.foldenable = false
+vim.opt.foldmethod = "manual"
 
 -- Basic keymaps
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
@@ -141,6 +149,43 @@ vim.api.nvim_create_user_command("TermKill", function()
 		print("No terminal buffer to kill")
 	end
 end, { desc = "Kill the persistent terminal buffer" })
+
+-- Auto-close hidden buffers after 30 minutes of inactivity
+vim.api.nvim_create_autocmd("BufHidden", {
+	callback = function(args)
+		local buf = args.buf
+		vim.defer_fn(function()
+			-- Check if buffer still exists and is hidden
+			if vim.api.nvim_buf_is_valid(buf) and not vim.fn.buflisted(buf) and not vim.bo[buf].modified then
+				local wins = vim.fn.win_findbuf(buf)
+				if #wins == 0 then -- No windows showing this buffer
+					pcall(vim.api.nvim_buf_delete, buf, { force = false })
+				end
+			end
+		end, 30 * 60 * 1000) -- 30 minutes in milliseconds
+	end,
+})
+
+-- Manually free / clean up memory
+vim.api.nvim_create_user_command("MemClean", function()
+	-- Close all hidden buffers
+	local buffers = vim.api.nvim_list_bufs()
+	for _, buf in ipairs(buffers) do
+		if vim.api.nvim_buf_is_loaded(buf) and not vim.bo[buf].modified then
+			local wins = vim.fn.win_findbuf(buf)
+			if #wins == 0 then
+				pcall(vim.api.nvim_buf_delete, buf, { force = false })
+			end
+		end
+	end
+	-- Clear various caches
+	vim.cmd("LspStop") -- Stop all LSP servers
+	vim.cmd("TSDisable highlight") -- Disable treesitter
+	vim.cmd("TSEnable highlight") -- Re-enable treesitter
+	vim.cmd("LspStart") -- Restart LSP
+	collectgarbage("collect") -- Force Lua garbage collection
+	print("Memory cleaned")
+end, {})
 
 -- Project detection function with subdirectory scanning
 local function detect_project_features()
@@ -516,7 +561,7 @@ require("lazy").setup({
 			telescope.setup({
 				defaults = {
 					cache_picker = {
-						num_pickers = 5,
+						num_pickers = 1,
 					},
 					dynamic_preview_title = true,
 
@@ -1103,38 +1148,28 @@ require("lazy").setup({
 				linters_by_ft.typescript = { "eslint_d" }
 				linters_by_ft.javascriptreact = { "eslint_d" }
 				linters_by_ft.typescriptreact = { "eslint_d" }
-				print("🟢 ESLint linting enabled for this project")
 			end
 
 			if project.has_go then
 				linters_by_ft.go = { "golangcilint" }
-				print("🟢 Go linting enabled for this project")
 			end
 
 			if project.has_php then
 				-- Use both PHP syntax checker and PHPStan
 				linters_by_ft.php = { "php", "phpstan" }
-				print("🟢 PHP linting enabled for this project (php + phpstan)")
 			end
 
 			if project.has_python then
 				linters_by_ft.python = { "ruff" }
-				print("🟢 Python linting enabled for this project")
 			end
 
 			if project.has_terraform then
 				linters_by_ft.terraform = { "tflint" }
 				linters_by_ft.tf = { "tflint" }
-				print("🟢 Terraform linting enabled for this project")
 			end
 
 			-- Apply the configuration
 			lint.linters_by_ft = linters_by_ft
-
-			-- Show summary
-			if next(linters_by_ft) == nil then
-				print("⚪ No linters configured for this project type")
-			end
 
 			-- Setup autocommand to lint on save and insert leave
 			vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave", "TextChanged" }, {
@@ -1230,16 +1265,6 @@ require("lazy").setup({
 				-- Use the global detect_project_features function
 				local project = _G.detect_project_features()
 
-				print("🔍 LSP Detection Results:")
-				print("  Lua: " .. (project.has_lua and "✅" or "❌"))
-				print("  JS/TS: " .. (project.has_js_ts and "✅" or "❌"))
-				print("  ESLint: " .. (project.has_eslint and "✅" or "❌"))
-				print("  Go: " .. (project.has_go and "✅" or "❌"))
-				print("  Python: " .. (project.has_python and "✅" or "❌"))
-				print("  PHP: " .. (project.has_php and "✅" or "❌"))
-				print("  SQL: " .. (project.has_sql and "✅" or "❌"))
-				print("  Terraform: " .. (project.has_terraform and "✅" or "❌"))
-
 				-- Track which LSPs we're starting
 				local starting_lsps = {}
 
@@ -1307,6 +1332,9 @@ require("lazy").setup({
 								},
 							},
 						},
+						init_options = {
+							maxTsServerMemory = 2048,
+						},
 					})
 				end
 
@@ -1340,6 +1368,7 @@ require("lazy").setup({
 						capabilities = capabilities,
 						settings = {
 							gopls = {
+								memoryMode = "DegradeClosed",
 								analyses = {
 									unusedparams = true,
 									shadow = true,
@@ -1392,7 +1421,6 @@ require("lazy").setup({
 
 				-- PHP LSP
 				if project.has_php then
-					print("🟢 Starting PHP LSP (PHPActor)")
 					lspconfig.phpactor.setup({
 						on_attach = on_attach,
 						flags = short_flags,
@@ -1427,13 +1455,6 @@ require("lazy").setup({
 						filetypes = { "terraform", "tf", "hcl" },
 						cmd = { "terraform-ls", "serve" },
 					})
-				end
-
-				-- Print summary of what's being started
-				if #starting_lsps > 0 then
-					print("\n🚀 Starting LSP servers: " .. table.concat(starting_lsps, ", "))
-				else
-					print("\n⚪ No LSP servers to start for this project")
 				end
 			end)
 
