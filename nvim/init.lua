@@ -173,34 +173,22 @@ vim.api.nvim_create_autocmd("BufHidden", {
 vim.api.nvim_create_user_command("MemClean", function()
 	-- Close all hidden buffers
 	local buffers = vim.api.nvim_list_bufs()
+	local closed = 0
 	for _, buf in ipairs(buffers) do
 		if vim.api.nvim_buf_is_loaded(buf) and not vim.bo[buf].modified then
 			local wins = vim.fn.win_findbuf(buf)
 			if #wins == 0 then
-				pcall(vim.api.nvim_buf_delete, buf, { force = false })
+				if pcall(vim.api.nvim_buf_delete, buf, { force = false }) then
+					closed = closed + 1
+				end
 			end
 		end
 	end
 
-	-- Stop all LSP clients
-	local clients = vim.lsp.get_clients()
-	for _, client in ipairs(clients) do
-		vim.lsp.stop_client(client.id)
-	end
-
-	-- Clear Treesitter
-	vim.cmd("TSDisable highlight")
-	vim.cmd("TSEnable highlight")
-
 	-- Force garbage collection
 	collectgarbage("collect")
 
-	-- Restart LSP for current buffer
-	vim.defer_fn(function()
-		vim.cmd("edit") -- This will trigger LSP to reattach
-	end, 100)
-
-	print("Memory cleaned")
+	print(string.format("Memory cleaned (%d buffers closed)", closed))
 end, {})
 
 -- Project detection function with subdirectory scanning
