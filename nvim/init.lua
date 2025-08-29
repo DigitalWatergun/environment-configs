@@ -1,3 +1,5 @@
+-- PLACE THIS FILE IN YOUR CONFIG FOLDER: ~/.config/nvim/init.lua
+--
 -- CORE REQUIREMENTS
 -- brew install ripgrep git make
 --
@@ -78,8 +80,9 @@ vim.opt.swapfile = false -- No swap files (.file.txt.swp)
 vim.opt.undofile = true -- Keep but limit:
 vim.opt.undodir = vim.fn.stdpath("data") .. "/undo"
 vim.opt.undolevels = 1000 -- Limit undo history in memory
-vim.opt.foldenable = false
-vim.opt.foldmethod = "manual"
+vim.opt.foldenable = false -- Diasble code folding
+vim.opt.foldmethod = "manual" -- Disable Neovim fold calculation
+vim.opt.shada = "" -- Disable shared data
 
 -- Basic keymaps
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
