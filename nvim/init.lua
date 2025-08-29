@@ -152,18 +152,40 @@ vim.api.nvim_create_user_command("TermKill", function()
 	end
 end, { desc = "Kill the persistent terminal buffer" })
 
--- Automatically close buffers when closing the window
-vim.api.nvim_create_autocmd("BufWinLeave", {
+-- Track timers to avoid duplicates
+vim.g.buffer_timers = vim.g.buffer_timers or {}
+vim.api.nvim_create_autocmd("BufHidden", {
 	callback = function(args)
 		local buf = args.buf
-		vim.defer_fn(function()
-			if vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified then
-				local wins = vim.fn.win_findbuf(buf)
-				if #wins == 0 then
-					pcall(vim.api.nvim_buf_delete, buf, { force = true })
-				end
+
+		-- Cancel existing timer for this buffer if one exists
+		if vim.g.buffer_timers[buf] then
+			vim.fn.timer_stop(vim.g.buffer_timers[buf])
+		end
+
+		-- Start new 10-minute timer
+		vim.g.buffer_timers[buf] = vim.fn.timer_start(10 * 60 * 1000, function()
+			if
+				vim.api.nvim_buf_is_valid(buf)
+				and vim.fn.buflisted(buf)
+				and not vim.bo[buf].modified
+				and #vim.fn.win_findbuf(buf) == 0
+			then
+				pcall(vim.api.nvim_buf_delete, buf, { force = false })
 			end
-		end, 0)
+			-- Clear the timer reference
+			vim.g.buffer_timers[buf] = nil
+		end)
+	end,
+})
+
+-- Clean up timers when buffer is deleted
+vim.api.nvim_create_autocmd("BufDelete", {
+	callback = function(args)
+		if vim.g.buffer_timers[args.buf] then
+			vim.fn.timer_stop(vim.g.buffer_timers[args.buf])
+			vim.g.buffer_timers[args.buf] = nil
+		end
 	end,
 })
 
@@ -1033,7 +1055,7 @@ require("lazy").setup({
 			-- Configure Typescript / Javascript linter
 			if project.has_eslint then
 				local eslint_d = require("lint.linters.eslint_d")
-				table.insert(eslint_d.args, "--no-warn-ignored")
+				-- Removed --no-warn-ignored as it's not supported by eslint_d
 			end
 
 			-- Configure PHP linter (PHPStan) with better configuration
