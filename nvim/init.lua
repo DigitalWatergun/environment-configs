@@ -152,19 +152,18 @@ vim.api.nvim_create_user_command("TermKill", function()
 	end
 end, { desc = "Kill the persistent terminal buffer" })
 
--- Auto-close hidden buffers after 10 minutes of inactivity
-vim.api.nvim_create_autocmd("BufHidden", {
+-- Automatically close buffers when closing the window
+vim.api.nvim_create_autocmd("BufWinLeave", {
 	callback = function(args)
 		local buf = args.buf
 		vim.defer_fn(function()
-			-- Check if buffer still exists and is hidden
-			if vim.api.nvim_buf_is_valid(buf) and not vim.fn.buflisted(buf) and not vim.bo[buf].modified then
+			if vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified then
 				local wins = vim.fn.win_findbuf(buf)
-				if #wins == 0 then -- No windows showing this buffer
-					pcall(vim.api.nvim_buf_delete, buf, { force = false })
+				if #wins == 0 then
+					pcall(vim.api.nvim_buf_delete, buf, { force = true })
 				end
 			end
-		end, 10 * 60 * 1000) -- 10 minutes in milliseconds
+		end, 0)
 	end,
 })
 
