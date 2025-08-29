@@ -153,7 +153,7 @@ vim.api.nvim_create_user_command("TermKill", function()
 	end
 end, { desc = "Kill the persistent terminal buffer" })
 
--- Auto-close hidden buffers after 30 minutes of inactivity
+-- Auto-close hidden buffers after 10 minutes of inactivity
 vim.api.nvim_create_autocmd("BufHidden", {
 	callback = function(args)
 		local buf = args.buf
@@ -165,7 +165,7 @@ vim.api.nvim_create_autocmd("BufHidden", {
 					pcall(vim.api.nvim_buf_delete, buf, { force = false })
 				end
 			end
-		end, 30 * 60 * 1000) -- 30 minutes in milliseconds
+		end, 10 * 60 * 1000) -- 10 minutes in milliseconds
 	end,
 })
 
