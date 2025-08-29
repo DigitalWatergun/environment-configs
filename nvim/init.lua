@@ -181,12 +181,25 @@ vim.api.nvim_create_user_command("MemClean", function()
 			end
 		end
 	end
-	-- Clear various caches
-	vim.cmd("LspStop") -- Stop all LSP servers
-	vim.cmd("TSDisable highlight") -- Disable treesitter
-	vim.cmd("TSEnable highlight") -- Re-enable treesitter
-	vim.cmd("LspStart") -- Restart LSP
-	collectgarbage("collect") -- Force Lua garbage collection
+
+	-- Stop all LSP clients
+	local clients = vim.lsp.get_clients()
+	for _, client in ipairs(clients) do
+		vim.lsp.stop_client(client.id)
+	end
+
+	-- Clear Treesitter
+	vim.cmd("TSDisable highlight")
+	vim.cmd("TSEnable highlight")
+
+	-- Force garbage collection
+	collectgarbage("collect")
+
+	-- Restart LSP for current buffer
+	vim.defer_fn(function()
+		vim.cmd("edit") -- This will trigger LSP to reattach
+	end, 100)
+
 	print("Memory cleaned")
 end, {})
 
