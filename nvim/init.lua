@@ -980,6 +980,18 @@ require("lazy").setup({
 			conform.setup({
 				formatters = {
 					-- Python
+					ruff_format = {
+						command = "ruff",
+						args = { "format", "--stdin-filename", "$FILENAME", "-" },
+						stdin = true,
+						env = { PATH = venv_path() },
+					},
+					ruff_organize_imports = {
+						command = "ruff",
+						args = { "check", "--fix", "--select", "I", "--stdin-filename", "$FILENAME", "-" },
+						stdin = true,
+						env = { PATH = venv_path() },
+					},
 					black = {
 						command = "black",
 						args = { "--quiet", "-" },
@@ -990,6 +1002,17 @@ require("lazy").setup({
 					-- JS/TS via Prettier
 					prettier = {
 						args = { "--stdin-filepath", "$FILENAME" },
+						stdin = true,
+					},
+
+					-- Go - goimports handles import sorting automatically
+					goimports = {
+						command = "goimports",
+						args = { "-srcdir", "$DIRNAME" },
+						stdin = true,
+					},
+					gofumpt = {
+						command = "gofumpt",
 						stdin = true,
 					},
 
@@ -1031,7 +1054,7 @@ require("lazy").setup({
 					lua = { "stylua" },
 					go = { "goimports", "gofumpt" },
 					php = { "php-cs-fixer" },
-					python = { "ruff_fix", "ruff_format", "black" },
+					python = { "ruff_organize_imports", "ruff_fix", "ruff_format", "black" },
 					terraform = { "terraform_fmt" },
 				},
 
