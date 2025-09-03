@@ -1078,7 +1078,17 @@ require("lazy").setup({
 			-- Configure Typescript / Javascript linter
 			if project.has_eslint then
 				local eslint_d = require("lint.linters.eslint_d")
-				-- Removed --no-warn-ignored as it's not supported by eslint_d
+				-- Add the --no-warn-ignored flag to the args
+				eslint_d.args = {
+					"--format",
+					"json",
+					"--stdin",
+					"--stdin-filename",
+					function()
+						return vim.api.nvim_buf_get_name(0)
+					end,
+					"--no-warn-ignored", -- Add this flag
+				}
 			end
 
 			-- Configure PHP linter (PHPStan) with better configuration
@@ -1400,6 +1410,16 @@ require("lazy").setup({
 								codeActionsOnSave = {
 									mode = "all",
 									rules = false,
+								},
+								-- Add this to suppress warnings on ignored files
+								lintTask = {
+									options = "--no-warn-ignored",
+								},
+								run = "onType",
+								quiet = false,
+								rulesCustomizations = {},
+								problems = {
+									shortenToSingleLine = false,
 								},
 							},
 						},
