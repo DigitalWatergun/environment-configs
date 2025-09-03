@@ -48,13 +48,7 @@
   },
   "Rows" : 50,
   "Default Bookmark" : "No",
-  "Ansi 2 Color" : {
-    "Red Component" : 0.40215280652046204,
-    "Color Space" : "sRGB",
-    "Blue Component" : 0.40937861800193787,
-    "Alpha Component" : 1,
-    "Green Component" : 0.8514404296875
-  },
+  "Custom Directory" : "No",
   "Cursor Guide Color" : {
     "Red Component" : 0.70213186740875244,
     "Color Space" : "sRGB",
@@ -71,6 +65,7 @@
     "Alpha Component" : 1,
     "Green Component" : 0.942596435546875
   },
+  "Treat Option as Alt" : true,
   "Ambiguous Double Width" : false,
   "Jobs to Ignore" : [
     "rlogin",
@@ -125,10 +120,10 @@
   },
   "Custom Command" : "No",
   "ASCII Anti Aliased" : true,
-  "Non Ascii Font" : "Monaco 12",
+  "Non Ascii Font" : "MesloLGS-NF-Regular 13",
   "Vertical Spacing" : 1,
   "Use Bold Font" : true,
-  "Option Key Sends" : 0,
+  "Left Option Key Changeable" : false,
   "Selected Text Color" : {
     "Red Component" : 0,
     "Color Space" : "sRGB",
@@ -136,6 +131,8 @@
     "Alpha Component" : 1,
     "Green Component" : 0
   },
+  "Option Key Sends" : 2,
+  "Character Encoding" : 4,
   "Background Color" : {
     "Red Component" : 0.11764705926179886,
     "Color Space" : "sRGB",
@@ -143,7 +140,6 @@
     "Alpha Component" : 1,
     "Green Component" : 0.11764705926179886
   },
-  "Character Encoding" : 4,
   "Ansi 11 Color" : {
     "Red Component" : 1,
     "Color Space" : "sRGB",
@@ -270,10 +266,10 @@
     "Color Space" : "sRGB",
     "Blue Component" : 0.11764705926179886,
     "Alpha Component" : 1,
-    "Green Component" : 0.098039217293262482
+    "Green Component" : 0.098039217293262454
   },
-  "Guid" : "A98B26C6-3B98-435A-AA5A-FCBCB1EBC955",
-  "Custom Directory" : "No",
+  "Guid" : "54D25CFE-D4EC-4D09-A798-B0797F483C23",
+  "Horizontal Spacing" : 1,
   "Link Color" : {
     "Red Component" : 0.19802422821521759,
     "Color Space" : "sRGB",
@@ -281,8 +277,14 @@
     "Alpha Component" : 1,
     "Green Component" : 0.55789834260940552
   },
-  "Horizontal Spacing" : 1,
-  "Right Option Key Sends" : 0,
+  "Ansi 2 Color" : {
+    "Red Component" : 0.40215280652046204,
+    "Color Space" : "sRGB",
+    "Blue Component" : 0.40937861800193787,
+    "Alpha Component" : 1,
+    "Green Component" : 0.8514404296875
+  },
+  "Right Option Key Sends" : 2,
   "Use Non-ASCII Font" : false,
   "Ansi 6 Color" : {
     "Red Component" : 0,
@@ -295,7 +297,7 @@
   "Ansi 3 Color" : {
     "Red Component" : 0.8521728515625,
     "Color Space" : "sRGB",
-    "Blue Component" : 0.044782765209674835,
+    "Blue Component" : 0.044782765209674821,
     "Alpha Component" : 1,
     "Green Component" : 0.84080380201339722
   },
