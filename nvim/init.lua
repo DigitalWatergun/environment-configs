@@ -1077,18 +1077,17 @@ require("lazy").setup({
 
 			-- Configure Typescript / Javascript linter
 			if project.has_eslint then
-				local eslint_d = require("lint.linters.eslint_d")
-				-- Add the --no-warn-ignored flag to the args
-				eslint_d.args = {
-					"--format",
-					"json",
-					"--stdin",
-					"--stdin-filename",
-					function()
-						return vim.api.nvim_buf_get_name(0)
-					end,
-					"--no-warn-ignored", -- Add this flag
-				}
+				-- Custom parser to filter out "file ignored" warnings
+				local original_parser = require("lint.linters.eslint_d").parser
+				require("lint.linters.eslint_d").parser = function(output, bufnr, linter_cwd)
+					-- Get the original diagnostics
+					local diagnostics = original_parser(output, bufnr, linter_cwd)
+
+					-- Filter out the "file ignored" warnings
+					return vim.tbl_filter(function(diagnostic)
+						return not diagnostic.message:match("File ignored because of a matching ignore pattern")
+					end, diagnostics)
+				end
 			end
 
 			-- Configure PHP linter (PHPStan) with better configuration
@@ -1285,7 +1284,7 @@ require("lazy").setup({
 		},
 		config = function()
 			-- Wrap everything in pcall to catch errors
-			local ok, err = pcall(function()
+			local ok, lsp_error = pcall(function()
 				local lspconfig = require("lspconfig")
 
 				-- Shared on_attach function
@@ -1526,7 +1525,7 @@ require("lazy").setup({
 			end)
 
 			if not ok then
-				print("❌ LSP Configuration Error: " .. tostring(err))
+				print("❌ LSP Configuration Error: " .. tostring(lsp_error))
 			end
 
 			vim.api.nvim_create_user_command("LspStatus", function()
@@ -1792,6 +1791,28 @@ require("lazy").setup({
 					print("Restarted LSP clients")
 				end, 500)
 			end, { desc = "Restart all LSP clients for current buffer" })
+
+			-- ============================================
+			-- FILTER ESLINT "FILE IGNORED" WARNINGS
+			-- ============================================
+			-- Override the diagnostic handler globally but only filter for ESLint
+			local original_handler = vim.lsp.handlers["textDocument/publishDiagnostics"]
+
+			vim.lsp.handlers["textDocument/publishDiagnostics"] = function(err, result, ctx, config)
+				-- Check if this is from ESLint
+				local client = vim.lsp.get_client_by_id(ctx.client_id)
+				if client and client.name == "eslint" then
+					-- Filter out the "file ignored" warnings
+					if result and result.diagnostics then
+						result.diagnostics = vim.tbl_filter(function(diagnostic)
+							return not diagnostic.message:match("File ignored because of a matching ignore pattern")
+						end, result.diagnostics)
+					end
+				end
+
+				-- Call the original handler
+				return original_handler(err, result, ctx, config)
+			end
 		end,
 	},
 
