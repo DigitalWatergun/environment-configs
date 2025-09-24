@@ -581,7 +581,6 @@ require("lazy").setup({
 					"lua-language-server",
 					"eslint-lsp",
 					"prettier",
-					"eslint_d",
 					"stylua",
 					"gopls",
 					"goimports",
@@ -715,8 +714,8 @@ require("lazy").setup({
 
 			-- Configure Typescript / Javascript linter
 			-- Custom parser to filter out "file ignored" warnings
-			local original_parser = require("lint.linters.eslint_d").parser
-			require("lint.linters.eslint_d").parser = function(output, bufnr, linter_cwd)
+			local original_parser = require("lint.linters.eslint").parser
+			require("lint.linters.eslint").parser = function(output, bufnr, linter_cwd)
 				-- Filter out the "file ignored" warnings
 				local diagnostics = original_parser(output, bufnr, linter_cwd)
 				return vim.tbl_filter(function(diagnostic)
@@ -824,10 +823,10 @@ require("lazy").setup({
 			}
 
 			local linters_by_ft = {
-				javascript = { "eslint_d" },
-				typescript = { "eslint_d" },
-				javascriptreact = { "eslint_d" },
-				typescriptreact = { "eslint_d" },
+				javascript = { "eslint" },
+				typescript = { "eslint" },
+				javascriptreact = { "eslint" },
+				typescriptreact = { "eslint" },
 				go = { "golangcilint" },
 				php = { "php", "phpstan" },
 				python = { "ruff" },
@@ -838,8 +837,8 @@ require("lazy").setup({
 			-- Apply the configuration
 			lint.linters_by_ft = linters_by_ft
 
-			-- Setup autocommand to lint on save and insert leave
-			vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave", "TextChanged" }, {
+			-- Setup autocommand to lint on save and insert leave (removed TextChanged for performance)
+			vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
 				callback = function()
 					-- Only lint if we have linters for this filetype
 					local ft = vim.bo.filetype
