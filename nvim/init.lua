@@ -713,9 +713,32 @@ require("lazy").setup({
 			local lint = require("lint")
 
 			-- Configure Typescript / Javascript linter
+			-- Check for project-local eslint first, then fallback to global
+			local eslint_linter = require("lint.linters.eslint")
+			eslint_linter.cmd = function()
+				local local_eslint = vim.fn.fnamemodify("./node_modules/.bin/eslint", ":p")
+				if vim.fn.executable(local_eslint) == 1 then
+					return local_eslint
+				end
+				-- Fallback to global eslint
+				if vim.fn.executable("eslint") == 1 then
+					return "eslint"
+				end
+				-- Last resort: use npx
+				return "npx"
+			end
+			eslint_linter.args = function()
+				local cmd = eslint_linter.cmd()
+				local base_args = { "-f", "json", "--stdin", "--stdin-filename", "$FILENAME" }
+				if cmd == "npx" then
+					return vim.list_extend({ "eslint" }, base_args)
+				end
+				return base_args
+			end
+
 			-- Custom parser to filter out "file ignored" warnings
-			local original_parser = require("lint.linters.eslint").parser
-			require("lint.linters.eslint").parser = function(output, bufnr, linter_cwd)
+			local original_parser = eslint_linter.parser
+			eslint_linter.parser = function(output, bufnr, linter_cwd)
 				-- Filter out the "file ignored" warnings
 				local diagnostics = original_parser(output, bufnr, linter_cwd)
 				return vim.tbl_filter(function(diagnostic)
