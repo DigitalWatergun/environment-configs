@@ -3,12 +3,15 @@
 -- CORE REQUIREMENTS
 -- brew install ripgrep git make
 --
--- # Then add languages as you use them:
+-- Then add languages as you use them:
 -- brew install python3       # When you work on Python projects
 -- brew install node          # When you work on JS/TS projects
 -- brew install go            # When you work on Go projects
 -- brew install terraform     # When you work on Terraform files
 -- brew install php composer  # When you work on PHP projects
+--
+-- Install global eslint
+-- npm install -g eslint
 
 vim.g.loaded_netrw = 1 -- fully disable netrw for nvim-tree
 vim.g.loaded_netrwPlugin = 1
