@@ -168,6 +168,17 @@ vim.api.nvim_create_user_command("CleanBuffers", function()
 	local buffers = vim.api.nvim_list_bufs()
 	local closed = 0
 	for _, buf in ipairs(buffers) do
+		-- Skip persistent terminal buffer
+		if buf == vim.g.persistent_term_buf then
+			goto continue
+		end
+
+		-- Skip all terminal buffers (buftype == 'terminal')
+		local buftype = vim.bo[buf].buftype
+		if buftype == "terminal" then
+			goto continue
+		end
+
 		-- Only delete if: loaded, not modified, no windows, no LSP attached
 		if
 			vim.api.nvim_buf_is_loaded(buf)
@@ -179,6 +190,8 @@ vim.api.nvim_create_user_command("CleanBuffers", function()
 				closed = closed + 1
 			end
 		end
+
+		::continue::
 	end
 	print(string.format("Cleaned %d buffers", closed))
 end, { desc = "Clean up abandoned buffers" })
@@ -1617,11 +1630,29 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	callback = function()
 		local ft = vim.bo.filetype
 
-		-- Skip formatting for SQL files entirely
+		-- Organize imports for TypeScript/JavaScript files FIRST
+		if ft == "typescript" or ft == "typescriptreact" or ft == "javascript" or ft == "javascriptreact" then
+			-- Check if LSP client is attached
+			local clients = vim.lsp.get_clients({ bufnr = 0 })
+			if #clients > 0 then
+				vim.lsp.buf.code_action({
+					apply = true,
+					context = {
+						only = { "source.organizeImports" },
+						diagnostics = {},
+					},
+				})
+				-- Wait for organize imports to complete
+				vim.wait(100)
+			end
+		end
+
+		-- Then format (skip SQL files)
 		if ft ~= "sql" then
 			conform.format({ lsp_fallback = true })
 		end
 
+		-- Finally lint
 		if lint.linters_by_ft[ft] then
 			lint.try_lint()
 		end
