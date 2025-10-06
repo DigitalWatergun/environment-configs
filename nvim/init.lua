@@ -88,6 +88,8 @@ vim.keymap.set("t", "<Esc>", [[<C-\><C-n>]], { noremap = true, silent = true, de
 vim.keymap.set("v", "<Tab>", ">gv", { noremap = true, silent = true, desc = "Indent and reselect" })
 vim.keymap.set("v", "<S-Tab>", "<gv", { noremap = true, silent = true, desc = "Unindent and reselect" })
 vim.keymap.set("n", "<leader>dm", ":delmarks!<Bar>delmarks A-Z0-9<CR>", { desc = "Delete all marks" })
+vim.keymap.set("n", "<leader>cp", ':let @+ = expand("%:p")<CR>', { desc = "Copy file path to clipboard" })
+vim.keymap.set("n", "<leader>cr", ':let @+ = expand("%:.")<CR>', { desc = "Copy relative path to clipboard" })
 vim.keymap.set("n", "gv", function()
 	-- Check if LSP is available before splitting
 	local clients = vim.lsp.get_clients({ bufnr = 0 })
