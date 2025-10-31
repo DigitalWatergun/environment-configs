@@ -214,12 +214,24 @@ end, { desc = "Clean buffers and garbage collect" })
 -- Auto-detect project venv for python3_host_prog
 local function find_project_python()
 	local cwd = vim.fn.getcwd()
+
+	-- First, check for Poetry virtual environment
+	local poetry_env = vim.fn.system("cd " .. cwd .. " && poetry env info --path 2>/dev/null"):gsub("\n", "")
+	if poetry_env and poetry_env ~= "" and vim.fn.isdirectory(poetry_env) == 1 then
+		local poetry_py = poetry_env .. "/bin/python"
+		if vim.fn.executable(poetry_py) == 1 then
+			return poetry_py
+		end
+	end
+
+	-- Then check for standard venv directories
 	for _, name in ipairs({ ".venv", "venv", "env" }) do
 		local py = cwd .. "/" .. name .. "/bin/python"
 		if vim.fn.executable(py) == 1 then
 			return py
 		end
 	end
+
 	return vim.fn.exepath("python3")
 end
 
