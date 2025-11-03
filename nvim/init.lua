@@ -30,6 +30,24 @@ vim.api.nvim_create_autocmd("FocusGained", {
 	end,
 })
 
+-- Auto-reload files when they change on disk (handles CursorHold, BufEnter events)
+vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI" }, {
+	group = focus_grp,
+	callback = function()
+		if vim.fn.mode() ~= "c" then
+			vim.cmd.checktime({ mods = { silent = true, emsg_silent = true } })
+		end
+	end,
+})
+
+-- Notify when file changes on disk and is reloaded
+vim.api.nvim_create_autocmd("FileChangedShellPost", {
+	group = focus_grp,
+	callback = function()
+		vim.notify("File changed on disk. Buffer reloaded.", vim.log.levels.WARN)
+	end,
+})
+
 -- This section automatically downloads and installs lazy.nvim if it's not already present
 -- Think of this as ensuring the "app store" is installed before we try to download apps
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
