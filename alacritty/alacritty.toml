@@ -21,7 +21,7 @@ opacity = 1.0
 # Maximum number of lines in scrollback buffer
 history = 10000
 # Number of lines to scroll per step
-multiplier = 3
+multiplier = 1
 
 [font]
 # Font configuration - using MesloLGS NF for Powerlevel10k
@@ -31,7 +31,7 @@ italic = { family = "MesloLGS NF", style = "Italic" }
 bold_italic = { family = "MesloLGS NF", style = "Bold Italic" }
 
 # Font size
-size = 13.0
+size = 14.0
 
 # Offset is the extra space around each character
 offset = { x = 0, y = 0 }
@@ -59,7 +59,7 @@ black = "#141a1e"
 red = "#ff4528"
 green = "#67d968"
 yellow = "#d9d60b"
-blue = "#1f7ead"
+blue = "#4a90c2"
 magenta = "#c040be"
 cyan = "#00c5c7"
 white = "#d6d8d7"
@@ -94,8 +94,8 @@ color = "#ffffff"
 save_to_clipboard = true
 
 [mouse]
-# Hide cursor when typing
-hide_when_typing = true
+# Hide cursor when typing (disabled - causes cursor to disappear when switching windows)
+hide_when_typing = false
 
 # Key bindings
 [[keyboard.bindings]]
