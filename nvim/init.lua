@@ -966,8 +966,6 @@ require("lazy").setup({
 		config = function()
 			-- Wrap everything in pcall to catch errors
 			local ok, lsp_error = pcall(function()
-				local lspconfig = require("lspconfig")
-
 				-- Shared on_attach function
 				local function on_attach(_, bufnr)
 					local bufopts = { noremap = true, silent = true, buffer = bufnr }
@@ -998,12 +996,11 @@ require("lazy").setup({
 				local short_flags = { debounce_text_changes = 150 }
 				local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-				-- Track which LSPs we're starting
-				local starting_lsps = {}
-
 				-- Lua LSP
-				table.insert(starting_lsps, "lua_ls")
-				lspconfig.lua_ls.setup({
+				vim.lsp.config.lua_ls = {
+					cmd = { "lua-language-server" },
+					filetypes = { "lua" },
+					root_markers = { ".luarc.json", ".luarc.jsonc", ".luacheckrc", ".stylua.toml", "stylua.toml", "selene.toml", "selene.yml", ".git" },
 					on_attach = on_attach,
 					flags = short_flags,
 					capabilities = capabilities,
@@ -1030,11 +1027,14 @@ require("lazy").setup({
 							},
 						},
 					},
-				})
+				}
+				vim.lsp.enable("lua_ls")
 
 				-- TypeScript LSP
-				table.insert(starting_lsps, "ts_ls")
-				lspconfig.ts_ls.setup({
+				vim.lsp.config.ts_ls = {
+					cmd = { "typescript-language-server", "--stdio" },
+					filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+					root_markers = { "tsconfig.json", "package.json", "jsconfig.json", ".git" },
 					on_attach = on_attach,
 					flags = short_flags,
 					capabilities = capabilities,
@@ -1065,11 +1065,14 @@ require("lazy").setup({
 					init_options = {
 						hostInfo = "neovim",
 					},
-				})
+				}
+				vim.lsp.enable("ts_ls")
 
 				-- ESLint LSP
-				table.insert(starting_lsps, "eslint")
-				lspconfig.eslint.setup({
+				vim.lsp.config.eslint = {
+					cmd = { "vscode-eslint-language-server", "--stdio" },
+					filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+					root_markers = { ".eslintrc", ".eslintrc.js", ".eslintrc.json", ".eslintrc.cjs", ".eslintrc.mjs", ".eslintrc.yaml", ".eslintrc.yml", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs", "package.json", ".git" },
 					on_attach = on_attach,
 					flags = short_flags,
 					capabilities = capabilities,
@@ -1093,11 +1096,14 @@ require("lazy").setup({
 							},
 						},
 					},
-				})
+				}
+				vim.lsp.enable("eslint")
 
 				-- Go LSP
-				table.insert(starting_lsps, "gopls")
-				lspconfig.gopls.setup({
+				vim.lsp.config.gopls = {
+					cmd = { "gopls" },
+					filetypes = { "go", "gomod", "gowork", "gotmpl" },
+					root_markers = { "go.work", "go.mod", ".git" },
 					on_attach = on_attach,
 					flags = short_flags,
 					capabilities = capabilities,
@@ -1124,11 +1130,14 @@ require("lazy").setup({
 							},
 						},
 					},
-				})
+				}
+				vim.lsp.enable("gopls")
 
 				-- Python LSP
-				table.insert(starting_lsps, "pyright")
-				lspconfig.pyright.setup({
+				vim.lsp.config.pyright = {
+					cmd = { "pyright-langserver", "--stdio" },
+					filetypes = { "python" },
+					root_markers = { "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile", "pyrightconfig.json", ".git" },
 					on_attach = on_attach,
 					flags = short_flags,
 					capabilities = capabilities,
@@ -1149,18 +1158,25 @@ require("lazy").setup({
 							},
 						},
 					},
-				})
+				}
+				vim.lsp.enable("pyright")
 
 				-- PHP LSP
-				lspconfig.phpactor.setup({
+				vim.lsp.config.phpactor = {
+					cmd = { "phpactor", "language-server" },
+					filetypes = { "php" },
+					root_markers = { "composer.json", ".git" },
 					on_attach = on_attach,
 					flags = short_flags,
 					capabilities = capabilities,
-				})
+				}
+				vim.lsp.enable("phpactor")
 
 				-- SQL LSP
-				table.insert(starting_lsps, "sqls")
-				lspconfig.sqls.setup({
+				vim.lsp.config.sqls = {
+					cmd = { "sqls" },
+					filetypes = { "sql", "mysql" },
+					root_markers = { ".git" },
 					on_attach = on_attach,
 					flags = short_flags,
 					capabilities = capabilities,
@@ -1171,17 +1187,19 @@ require("lazy").setup({
 							},
 						},
 					},
-				})
+				}
+				vim.lsp.enable("sqls")
 
 				-- Terraform LSP
-				table.insert(starting_lsps, "terraformls")
-				lspconfig.terraformls.setup({
+				vim.lsp.config.terraformls = {
+					cmd = { "terraform-ls", "serve" },
+					filetypes = { "terraform", "tf", "hcl" },
+					root_markers = { ".terraform", ".git" },
 					on_attach = on_attach,
 					flags = short_flags,
 					capabilities = capabilities,
-					filetypes = { "terraform", "tf", "hcl" },
-					cmd = { "terraform-ls", "serve" },
-				})
+				}
+				vim.lsp.enable("terraformls")
 			end)
 
 			if not ok then
