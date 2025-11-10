@@ -316,13 +316,19 @@ require("lazy").setup({
 						i = {
 							["<C-j>"] = actions.move_selection_next,
 							["<C-k>"] = actions.move_selection_previous,
-							["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+							["<C-q>"] = function(prompt_bufnr)
+								actions.send_to_qflist(prompt_bufnr)
+								actions.open_qflist(prompt_bufnr)
+							end,
 							["<Esc>"] = actions.close,
 							["<C-u>"] = false,
 						},
 						n = {
 							["q"] = actions.close,
-							["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+							["<C-q>"] = function(prompt_bufnr)
+								actions.send_to_qflist(prompt_bufnr)
+								actions.open_qflist(prompt_bufnr)
+							end,
 						},
 					},
 
@@ -398,6 +404,12 @@ require("lazy").setup({
 
 			local blue = "#4A90C2"
 			local green = "#84d675"
+			local terminal_bg = "#1e1e1e"
+
+			-- Match terminal background color
+			vim.api.nvim_set_hl(0, "Normal", { bg = terminal_bg })
+			vim.api.nvim_set_hl(0, "NormalFloat", { bg = terminal_bg })
+			vim.api.nvim_set_hl(0, "NvimTreeNormal", { bg = terminal_bg })
 
 			-- folder icons & names
 			vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = blue, bold = true })
@@ -772,26 +784,27 @@ require("lazy").setup({
 				if vim.fn.executable("eslint") == 1 then
 					return "eslint"
 				end
-				-- Last resort: use npx
+				-- Last resort: use npx eslint
 				return "npx"
 			end
-			eslint_linter.args = function()
-				local cmd = eslint_linter.cmd()
-				local base_args = { "-f", "json", "--stdin", "--stdin-filename", "$FILENAME" }
-				if cmd == "npx" then
-					return vim.list_extend({ "eslint" }, base_args)
-				end
-				return base_args
-			end
+			-- Keep the default args structure but update as needed
+			-- The default eslint linter already has the right args structure
 
 			-- Custom parser to filter out "file ignored" warnings
 			local original_parser = eslint_linter.parser
 			eslint_linter.parser = function(output, bufnr, linter_cwd)
 				-- Filter out the "file ignored" warnings
 				local diagnostics = original_parser(output, bufnr, linter_cwd)
-				return vim.tbl_filter(function(diagnostic)
-					return not diagnostic.message:match("File ignored because of a matching ignore pattern")
-				end, diagnostics)
+				if type(diagnostics) ~= "table" then
+					return {}
+				end
+				local filtered = {}
+				for _, diagnostic in ipairs(diagnostics) do
+					if not diagnostic.message:match("File ignored because of a matching ignore pattern") then
+						table.insert(filtered, diagnostic)
+					end
+				end
+				return filtered
 			end
 
 			-- Configure PHP linter (PHPStan) with better configuration
@@ -966,35 +979,35 @@ require("lazy").setup({
 		config = function()
 			-- Wrap everything in pcall to catch errors
 			local ok, lsp_error = pcall(function()
-				-- Shared on_attach function
-				local function on_attach(_, bufnr)
-					local bufopts = { noremap = true, silent = true, buffer = bufnr }
+				-- Use LspAttach autocmd instead of on_attach in config (Neovim 0.11 best practice)
+				vim.api.nvim_create_autocmd("LspAttach", {
+					callback = function(ev)
+						local bufnr = ev.buf
+						local bufopts = { noremap = true, silent = true, buffer = bufnr }
 
-					-- LSP keymaps
-					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, bufopts)
-					vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts)
-					vim.keymap.set("n", "K", vim.lsp.buf.hover, bufopts)
-					vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts)
-					vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, bufopts)
-					vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, bufopts)
-					vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, bufopts)
-					vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts)
+						-- LSP keymaps
+						vim.keymap.set("n", "gD", vim.lsp.buf.declaration, bufopts)
+						vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts)
+						vim.keymap.set("n", "K", vim.lsp.buf.hover, bufopts)
+						vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts)
+						vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, bufopts)
+						vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, bufopts)
+						vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, bufopts)
+						vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts)
 
-					-- Diagnostic keymaps
-					vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, bufopts)
-					if vim.diagnostic.jump then
-						vim.keymap.set("n", "[d", function()
-							vim.diagnostic.jump({ count = -1 })
-						end, bufopts)
-						vim.keymap.set("n", "]d", function()
-							vim.diagnostic.jump({ count = 1 })
-						end, bufopts)
-					end
-					vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, bufopts)
-				end
-
-				local short_flags = { debounce_text_changes = 150 }
-				local capabilities = require("cmp_nvim_lsp").default_capabilities()
+						-- Diagnostic keymaps
+						vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, bufopts)
+						if vim.diagnostic.jump then
+							vim.keymap.set("n", "[d", function()
+								vim.diagnostic.jump({ count = -1 })
+							end, bufopts)
+							vim.keymap.set("n", "]d", function()
+								vim.diagnostic.jump({ count = 1 })
+							end, bufopts)
+						end
+						vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, bufopts)
+					end,
+				})
 
 				-- Lua LSP
 				vim.lsp.config.lua_ls = {
@@ -1010,9 +1023,7 @@ require("lazy").setup({
 						"selene.yml",
 						".git",
 					},
-					on_attach = on_attach,
-					flags = short_flags,
-					capabilities = capabilities,
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 					settings = {
 						Lua = {
 							runtime = {
@@ -1044,9 +1055,7 @@ require("lazy").setup({
 					cmd = { "typescript-language-server", "--stdio" },
 					filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
 					root_markers = { "tsconfig.json", "package.json", "jsconfig.json", ".git" },
-					on_attach = on_attach,
-					flags = short_flags,
-					capabilities = capabilities,
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 					settings = {
 						typescript = {
 							inlayHints = {
@@ -1071,9 +1080,6 @@ require("lazy").setup({
 							},
 						},
 					},
-					init_options = {
-						hostInfo = "neovim",
-					},
 				}
 				vim.lsp.enable("ts_ls")
 
@@ -1095,9 +1101,7 @@ require("lazy").setup({
 						"package.json",
 						".git",
 					},
-					on_attach = on_attach,
-					flags = short_flags,
-					capabilities = capabilities,
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 					settings = {
 						eslint = {
 							enable = true,
@@ -1126,9 +1130,7 @@ require("lazy").setup({
 					cmd = { "gopls" },
 					filetypes = { "go", "gomod", "gowork", "gotmpl" },
 					root_markers = { "go.work", "go.mod", ".git" },
-					on_attach = on_attach,
-					flags = short_flags,
-					capabilities = capabilities,
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 					settings = {
 						gopls = {
 							memoryMode = "DegradeClosed",
@@ -1168,17 +1170,10 @@ require("lazy").setup({
 						"pyrightconfig.json",
 						".git",
 					},
-					on_attach = on_attach,
-					flags = short_flags,
-					capabilities = capabilities,
-					before_init = function(_, config)
-						config.settings = config.settings or {}
-						config.settings.python = config.settings.python or {}
-						-- Use the find_project_python function from your config
-						config.settings.python.pythonPath = find_project_python()
-					end,
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 					settings = {
 						python = {
+							pythonPath = find_project_python(),
 							analysis = {
 								typeCheckingMode = "basic",
 								autoSearchPaths = true,
@@ -1196,9 +1191,7 @@ require("lazy").setup({
 					cmd = { "phpactor", "language-server" },
 					filetypes = { "php" },
 					root_markers = { "composer.json", ".git" },
-					on_attach = on_attach,
-					flags = short_flags,
-					capabilities = capabilities,
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 				}
 				vim.lsp.enable("phpactor")
 
@@ -1207,9 +1200,7 @@ require("lazy").setup({
 					cmd = { "sqls" },
 					filetypes = { "sql", "mysql" },
 					root_markers = { ".git" },
-					on_attach = on_attach,
-					flags = short_flags,
-					capabilities = capabilities,
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 					settings = {
 						sqls = {
 							connections = {
@@ -1225,9 +1216,7 @@ require("lazy").setup({
 					cmd = { "terraform-ls", "serve" },
 					filetypes = { "terraform", "tf", "hcl" },
 					root_markers = { ".terraform", ".git" },
-					on_attach = on_attach,
-					flags = short_flags,
-					capabilities = capabilities,
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 				}
 				vim.lsp.enable("terraformls")
 			end)
@@ -1405,7 +1394,6 @@ require("lazy").setup({
 			-- ============================================
 			-- FILTER ESLINT "FILE IGNORED" WARNINGS
 			-- ============================================
-			-- Override the diagnostic handler globally but only filter for ESLint
 			local original_handler = vim.lsp.handlers["textDocument/publishDiagnostics"]
 
 			vim.lsp.handlers["textDocument/publishDiagnostics"] = function(err, result, ctx, config)
@@ -1413,10 +1401,14 @@ require("lazy").setup({
 				local client = vim.lsp.get_client_by_id(ctx.client_id)
 				if client and client.name == "eslint" then
 					-- Filter out the "file ignored" warnings
-					if result and result.diagnostics then
-						result.diagnostics = vim.tbl_filter(function(diagnostic)
-							return not diagnostic.message:match("File ignored because of a matching ignore pattern")
-						end, result.diagnostics)
+					if result and result.diagnostics and type(result.diagnostics) == "table" then
+						local filtered = {}
+						for _, diagnostic in ipairs(result.diagnostics) do
+							if not diagnostic.message:match("File ignored because of a matching ignore pattern") then
+								table.insert(filtered, diagnostic)
+							end
+						end
+						result.diagnostics = filtered
 					end
 				end
 
@@ -1523,128 +1515,62 @@ require("lazy").setup({
 		"nvim-lualine/lualine.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
+			local terminal_bg = "#1e1e1e"
 			local custom_theme = {
 				normal = {
-					a = { bg = "#1b1d1e", fg = "#4a90c2", gui = "bold" },
-					b = { bg = "#1b1d1e", fg = "#84d675" },
-					c = { bg = "#1b1d1e", fg = "#ffffff" },
+					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
+					b = { bg = terminal_bg, fg = "#84d675" },
+					c = { bg = terminal_bg, fg = "#ffffff" },
 				},
 				insert = {
-					a = { bg = "#1b1d1e", fg = "#4a90c2", gui = "bold" },
-					b = { bg = "#1b1d1e", fg = "#84d675" },
-					c = { bg = "#1b1d1e", fg = "#ffffff" },
+					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
+					b = { bg = terminal_bg, fg = "#84d675" },
+					c = { bg = terminal_bg, fg = "#ffffff" },
 				},
 				visual = {
-					a = { bg = "#1b1d1e", fg = "#4a90c2", gui = "bold" },
-					b = { bg = "#1b1d1e", fg = "#84d675" },
-					c = { bg = "#1b1d1e", fg = "#ffffff" },
+					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
+					b = { bg = terminal_bg, fg = "#84d675" },
+					c = { bg = terminal_bg, fg = "#ffffff" },
 				},
 				replace = {
-					a = { bg = "#1b1d1e", fg = "#4a90c2", gui = "bold" },
-					b = { bg = "#1b1d1e", fg = "#84d675" },
-					c = { bg = "#1b1d1e", fg = "#ffffff" },
+					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
+					b = { bg = terminal_bg, fg = "#84d675" },
+					c = { bg = terminal_bg, fg = "#ffffff" },
 				},
 				command = {
-					a = { bg = "#1b1d1e", fg = "#4a90c2", gui = "bold" },
-					b = { bg = "#1b1d1e", fg = "#84d675" },
-					c = { bg = "#1b1d1e", fg = "#ffffff" },
+					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
+					b = { bg = terminal_bg, fg = "#84d675" },
+					c = { bg = terminal_bg, fg = "#ffffff" },
 				},
 				inactive = {
-					a = { bg = "#1b1d1e", fg = "#666666" },
-					b = { bg = "#1b1d1e", fg = "#666666" },
-					c = { bg = "#1b1d1e", fg = "#666666" },
+					a = { bg = terminal_bg, fg = "#666666" },
+					b = { bg = terminal_bg, fg = "#666666" },
+					c = { bg = terminal_bg, fg = "#666666" },
 				},
 			}
 
 			require("lualine").setup({
 				options = {
 					theme = custom_theme,
-					component_separators = { left = "", right = "" },
-					section_separators = "",
+					component_separators = { left = '', right = '' },
+					section_separators = { left = "", right = "" },
 				},
 				sections = {
 					lualine_a = {},
 					lualine_b = {
 						{
 							"mode",
-							color = { fg = "#4a90c2", bg = "#1b1d1e", gui = "bold" },
+							color = { fg = "#4a90c2", bg = "#1e1e1e", gui = "bold" },
 						},
 						{
 							"branch",
 							icon = "",
 							padding = { left = 0, right = 1 },
-							color = { fg = "#84d675", bg = "#1b1d1e" },
+							color = { fg = "#84d675", bg = "#1e1e1e" },
 						},
 						{
-							function()
-								-- Get diagnostics
-								local diagnostics = vim.diagnostic.get(0)
-								local error_count = #vim.tbl_filter(function(d)
-									return d.severity == 1
-								end, diagnostics)
-								local warn_count = #vim.tbl_filter(function(d)
-									return d.severity == 2
-								end, diagnostics)
-								local info_count = #vim.tbl_filter(function(d)
-									return d.severity == 3
-								end, diagnostics)
-								local hint_count = #vim.tbl_filter(function(d)
-									return d.severity == 4
-								end, diagnostics)
-
-								-- Get git diff info
-								local diff_added = vim.b.gitsigns_status_dict and vim.b.gitsigns_status_dict.added or 0
-								local diff_modified = vim.b.gitsigns_status_dict and vim.b.gitsigns_status_dict.changed
-									or 0
-								local diff_removed = vim.b.gitsigns_status_dict and vim.b.gitsigns_status_dict.removed
-									or 0
-
-								-- Build diagnostics and git diff string
-								local status_str = ""
-
-								-- Add diagnostics
-								if error_count > 0 then
-									status_str = status_str .. "◯" .. error_count .. " "
-								end
-								if warn_count > 0 then
-									status_str = status_str .. "△" .. warn_count .. " "
-								end
-								if info_count > 0 then
-									status_str = status_str .. "○" .. info_count .. " "
-								end
-								if hint_count > 0 then
-									status_str = status_str .. "◇" .. hint_count .. " "
-								end
-
-								-- Add git diff info
-								if diff_added > 0 then
-									status_str = status_str .. "+" .. diff_added .. " "
-								end
-								if diff_modified > 0 then
-									status_str = status_str .. "~" .. diff_modified .. " "
-								end
-								if diff_removed > 0 then
-									status_str = status_str .. "-" .. diff_removed .. " "
-								end
-
-								-- Get relative path from current working directory
-								local filename = vim.fn.expand("%:.")
-								if filename == "" then
-									filename = "[No Name]"
-								end
-
-								-- Combine with custom styling
-								if status_str ~= "" then
-									return string.format(
-										"%%#DiagnosticSection#%s%%#Arrow#\u{e0b0}%%#FilenameSection# %s",
-										status_str:gsub("%s+$", ""),
-										filename
-									)
-								else
-									return filename
-								end
-							end,
-							color = { fg = "#ffffff", bg = "#1b1d1e" },
+							"filename",
+							color = { fg = "#ffffff", bg = "#1e1e1e" },
 						},
 					},
 					lualine_c = {},
@@ -1667,13 +1593,13 @@ require("lazy").setup({
 			-- Create custom highlight groups
 			vim.cmd([[
 		highlight DiagnosticSection guifg=#ffffff guibg=#2a2a2a
-		highlight Arrow guifg=#2a2a2a guibg=#1b1d1e
-		highlight FilenameSection guifg=#ffffff guibg=#1b1d1e
-		highlight lualine_b_normal guifg=#ffffff guibg=#1b1d1e
-		highlight lualine_b_insert guifg=#ffffff guibg=#1b1d1e
-		highlight lualine_b_visual guifg=#ffffff guibg=#1b1d1e
-		highlight lualine_b_replace guifg=#ffffff guibg=#1b1d1e
-		highlight lualine_b_command guifg=#ffffff guibg=#1b1d1e
+		highlight Arrow guifg=#2a2a2a guibg=#1e1e1e
+		highlight FilenameSection guifg=#ffffff guibg=#1e1e1e
+		highlight lualine_b_normal guifg=#ffffff guibg=#1e1e1e
+		highlight lualine_b_insert guifg=#ffffff guibg=#1e1e1e
+		highlight lualine_b_visual guifg=#ffffff guibg=#1e1e1e
+		highlight lualine_b_replace guifg=#ffffff guibg=#1e1e1e
+		highlight lualine_b_command guifg=#ffffff guibg=#1e1e1e
 	]])
 		end,
 	},
@@ -1739,7 +1665,6 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 					apply = true,
 					context = {
 						only = { "source.organizeImports" },
-						diagnostics = {},
 					},
 				})
 				-- Wait for organize imports to complete
