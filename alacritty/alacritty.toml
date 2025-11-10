@@ -1,0 +1,135 @@
+# Alacritty Configuration
+# For Powerlevel10k and proper icon/color rendering
+
+[env]
+# Ensure proper TERM for tmux compatibility
+TERM = "xterm-256color"
+
+[window]
+# Window padding - reduced to minimize space
+padding = { x = 0, y = 0 }
+# Spread additional padding evenly around the terminal content
+dynamic_padding = true 
+# Window decorations (full, none, transparent, buttonless)
+decorations = "buttonless"
+# Startup mode (Windowed, Maximized, Fullscreen)
+startup_mode = "Windowed"
+# Window opacity (0.0 - 1.0)
+opacity = 1.0
+
+[scrolling]
+# Maximum number of lines in scrollback buffer
+history = 10000
+# Number of lines to scroll per step
+multiplier = 3
+
+[font]
+# Font configuration - using MesloLGS NF for Powerlevel10k
+normal = { family = "MesloLGS NF", style = "Regular" }
+bold = { family = "MesloLGS NF", style = "Bold" }
+italic = { family = "MesloLGS NF", style = "Italic" }
+bold_italic = { family = "MesloLGS NF", style = "Bold Italic" }
+
+# Font size
+size = 13.0
+
+# Offset is the extra space around each character
+offset = { x = 0, y = 0 }
+
+# Glyph offset determines the locations of the glyphs within their cells
+glyph_offset = { x = 0, y = 0 }
+
+[colors]
+# Enable drawing bold text with bright color variants
+draw_bold_text_with_bright_colors = true
+
+# Default colors - Exact match from iTerm2
+[colors.primary]
+background = "#1e1e1e"
+foreground = "#dcdcdc"
+
+# Cursor colors
+[colors.cursor]
+text = "#000000"
+cursor = "#ffffff"
+
+# Normal colors - Exact match from iTerm2 (Ansi 0-7)
+[colors.normal]
+black = "#141a1e"
+red = "#ff4528"
+green = "#67d968"
+yellow = "#d9d60b"
+blue = "#1f7ead"
+magenta = "#c040be"
+cyan = "#00c5c7"
+white = "#d6d8d7"
+
+# Bright colors - Exact match from iTerm2 (Ansi 8-15)
+[colors.bright]
+black = "#868686"
+red = "#ff463e"
+green = "#7ef0ab"
+yellow = "#fff300"
+blue = "#aafcff"
+magenta = "#e17ee1"
+cyan = "#66e2e3"
+white = "#ffffff"
+
+[cursor]
+# Cursor style (Block, Underline, Beam)
+style = { shape = "Block", blinking = "Off" }
+# Cursor blinking interval in milliseconds
+blink_interval = 750
+# If true, the cursor will be rendered as hollow when unfocused
+unfocused_hollow = true
+
+[bell]
+# Visual bell animation (Ease, EaseOut, EaseOutSine, EaseOutQuad, etc.)
+animation = "EaseOutExpo"
+duration = 0
+color = "#ffffff"
+
+[selection]
+# Save selections to system clipboard
+save_to_clipboard = true
+
+[mouse]
+# Hide cursor when typing
+hide_when_typing = true
+
+# Key bindings
+[[keyboard.bindings]]
+key = "V"
+mods = "Command"
+action = "Paste"
+
+[[keyboard.bindings]]
+key = "C"
+mods = "Command"
+action = "Copy"
+
+[[keyboard.bindings]]
+key = "Q"
+mods = "Command"
+action = "Quit"
+
+[[keyboard.bindings]]
+key = "N"
+mods = "Command"
+action = "SpawnNewInstance"
+
+[[keyboard.bindings]]
+key = "Plus"
+mods = "Command"
+action = "IncreaseFontSize"
+
+[[keyboard.bindings]]
+key = "Minus"
+mods = "Command"
+action = "DecreaseFontSize"
+
+[[keyboard.bindings]]
+key = "Key0"
+mods = "Command"
+action = "ResetFontSize"
+
