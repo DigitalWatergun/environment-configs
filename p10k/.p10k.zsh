@@ -359,11 +359,17 @@
 
   #####################################[ vcs: git status ]######################################
   # Version control background colors.
-  typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND=2
-  typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND=3
-  typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND=2
-  typeset -g POWERLEVEL9K_VCS_CONFLICTED_BACKGROUND=3
+  typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND='#444444'
+  typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='#444444'
+  typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND='#444444'
+  typeset -g POWERLEVEL9K_VCS_CONFLICTED_BACKGROUND='#444444'
   typeset -g POWERLEVEL9K_VCS_LOADING_BACKGROUND=8
+
+  # Version control foreground colors (for the GitHub cat icon).
+  typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND='#4a90c2'
+  typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND='#4a90c2'
+  typeset -g POWERLEVEL9K_VCS_UNTRACKED_FOREGROUND='#4a90c2'
+  typeset -g POWERLEVEL9K_VCS_CONFLICTED_FOREGROUND='#4a90c2'
 
   # Branch icon. Set this parameter to '\UE0A0 ' for the popular Powerline branch icon.
   typeset -g POWERLEVEL9K_VCS_BRANCH_ICON='\uF126 '
@@ -392,10 +398,10 @@
 
     # Styling for different parts of Git status.
     local       meta='%7F' # white foreground
-    local      clean='%0F' # black foreground
-    local   modified='%0F' # black foreground
-    local  untracked='%0F' # black foreground
-    local conflicted='%1F' # red foreground
+    local      clean='%F{#4a90c2}' # custom blue foreground for branch name and icon
+    local   modified='%F{green}' # green foreground for status indicators
+    local  untracked='%F{green}' # green foreground for untracked indicator
+    local conflicted='%F{green}' # green foreground for conflict indicator
 
     local res
 
