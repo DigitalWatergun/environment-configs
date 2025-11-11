@@ -1562,7 +1562,7 @@ require("lazy").setup({
 							"branch",
 							icon = "",
 							padding = { left = 0, right = 1 },
-							color = { fg = "#4a90c2", bg = "#1e1e1e" },
+							color = { fg = "#4a90c2", bg = "#1e1e1e", gui = "bold" },
 						},
 						{
 							"filename",
