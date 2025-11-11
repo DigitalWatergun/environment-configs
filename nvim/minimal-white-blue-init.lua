@@ -1559,14 +1559,10 @@ require("lazy").setup({
 					lualine_a = {},
 					lualine_b = {
 						{
-							"mode",
-							color = { fg = "#4a90c2", bg = "#1e1e1e", gui = "bold" },
-						},
-						{
 							"branch",
 							icon = "",
 							padding = { left = 0, right = 1 },
-							color = { fg = "#84d675", bg = "#1e1e1e" },
+							color = { fg = "#4a90c2", bg = "#1e1e1e" },
 						},
 						{
 							"filename",
@@ -1583,7 +1579,12 @@ require("lazy").setup({
 						},
 						{
 							"location",
-							padding = { left = 0, right = 1 },
+							padding = { left = 0, right = 0 },
+						},
+						{
+							"mode",
+							color = { fg = "#4a90c2", bg = "#1e1e1e" },
+							padding = { left = 1, right = 1 },
 						},
 					},
 					lualine_z = {},
