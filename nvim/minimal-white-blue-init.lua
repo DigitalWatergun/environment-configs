@@ -1579,7 +1579,7 @@ require("lazy").setup({
 						},
 						{
 							"location",
-							padding = { left = 0, right = 0 },
+							padding = { left = 1, right = 1 },
 						},
 						{
 							"mode",
