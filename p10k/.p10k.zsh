@@ -399,9 +399,9 @@
     # Styling for different parts of Git status.
     local       meta='%7F' # white foreground
     local      clean='%F{#4a90c2}' # custom blue foreground for branch name and icon
-    local   modified='%F{green}' # green foreground for status indicators
-    local  untracked='%F{green}' # green foreground for untracked indicator
-    local conflicted='%F{green}' # green foreground for conflict indicator
+    local   modified='%7F' # white foreground for status indicators
+    local  untracked='%7F' # white foreground for untracked indicator
+    local conflicted='%7F' # white foreground for conflict indicator
 
     local res
 
@@ -459,7 +459,7 @@
     # ⇢42 if ahead of the push remote; no leading space if also behind: ⇠42⇢42.
     (( VCS_STATUS_PUSH_COMMITS_AHEAD  )) && res+="${clean}⇢${VCS_STATUS_PUSH_COMMITS_AHEAD}"
     # *42 if have stashes.
-    (( VCS_STATUS_STASHES        )) && res+=" ${clean}*${VCS_STATUS_STASHES}"
+    (( VCS_STATUS_STASHES        )) && res+=" ${modified}*${VCS_STATUS_STASHES}"
     # 'merge' if the repo is in an unusual state.
     [[ -n $VCS_STATUS_ACTION     ]] && res+=" ${conflicted}${VCS_STATUS_ACTION}"
     # ~42 if have merge conflicts.
