@@ -1396,7 +1396,8 @@ require("lazy").setup({
 			-- ============================================
 			local original_handler = vim.lsp.handlers["textDocument/publishDiagnostics"]
 
-			vim.lsp.handlers["textDocument/publishDiagnostics"] = function(err, result, ctx, config)
+			---@diagnostic disable-next-line: duplicate-set-field
+			vim.lsp.handlers["textDocument/publishDiagnostics"] = function(err, result, ctx, handler_config)
 				-- Check if this is from ESLint
 				local client = vim.lsp.get_client_by_id(ctx.client_id)
 				if client and client.name == "eslint" then
@@ -1413,7 +1414,7 @@ require("lazy").setup({
 				end
 
 				-- Call the original handler
-				return original_handler(err, result, ctx, config)
+				return original_handler(err, result, ctx, handler_config)
 			end
 		end,
 	},
@@ -1666,6 +1667,7 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 					apply = true,
 					context = {
 						only = { "source.organizeImports" },
+						diagnostics = {},
 					},
 				})
 				-- Wait for organize imports to complete
