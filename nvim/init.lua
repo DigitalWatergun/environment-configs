@@ -411,6 +411,10 @@ require("lazy").setup({
 			vim.api.nvim_set_hl(0, "NormalFloat", { bg = terminal_bg })
 			vim.api.nvim_set_hl(0, "NvimTreeNormal", { bg = terminal_bg })
 
+			-- Fix the statusline background under nvim-tree
+			vim.api.nvim_set_hl(0, "StatusLine", { bg = terminal_bg, fg = "#ffffff" })
+			vim.api.nvim_set_hl(0, "StatusLineNC", { bg = terminal_bg, fg = "#666666" })
+
 			-- folder icons & names
 			vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = blue, bold = true })
 			vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = blue, bold = true })
@@ -1516,37 +1520,38 @@ require("lazy").setup({
 		"nvim-lualine/lualine.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			local terminal_bg = "#1e1e1e"
+			local dark_gray = "#2a2a2a"
+
 			local custom_theme = {
 				normal = {
-					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
-					b = { bg = terminal_bg, fg = "#84d675" },
-					c = { bg = terminal_bg, fg = "#ffffff" },
+					a = { bg = dark_gray, fg = "#4a90c2", gui = "bold" },
+					b = { bg = dark_gray, fg = "#ffffff" },
+					c = { bg = dark_gray, fg = "#ffffff" },
 				},
 				insert = {
-					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
-					b = { bg = terminal_bg, fg = "#84d675" },
-					c = { bg = terminal_bg, fg = "#ffffff" },
+					a = { bg = dark_gray, fg = "#4a90c2", gui = "bold" },
+					b = { bg = dark_gray, fg = "#ffffff" },
+					c = { bg = dark_gray, fg = "#ffffff" },
 				},
 				visual = {
-					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
-					b = { bg = terminal_bg, fg = "#84d675" },
-					c = { bg = terminal_bg, fg = "#ffffff" },
+					a = { bg = dark_gray, fg = "#4a90c2", gui = "bold" },
+					b = { bg = dark_gray, fg = "#ffffff" },
+					c = { bg = dark_gray, fg = "#ffffff" },
 				},
 				replace = {
-					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
-					b = { bg = terminal_bg, fg = "#84d675" },
-					c = { bg = terminal_bg, fg = "#ffffff" },
+					a = { bg = dark_gray, fg = "#4a90c2", gui = "bold" },
+					b = { bg = dark_gray, fg = "#ffffff" },
+					c = { bg = dark_gray, fg = "#ffffff" },
 				},
 				command = {
-					a = { bg = terminal_bg, fg = "#4a90c2", gui = "bold" },
-					b = { bg = terminal_bg, fg = "#84d675" },
-					c = { bg = terminal_bg, fg = "#ffffff" },
+					a = { bg = dark_gray, fg = "#4a90c2", gui = "bold" },
+					b = { bg = dark_gray, fg = "#ffffff" },
+					c = { bg = dark_gray, fg = "#ffffff" },
 				},
 				inactive = {
-					a = { bg = terminal_bg, fg = "#666666" },
-					b = { bg = terminal_bg, fg = "#666666" },
-					c = { bg = terminal_bg, fg = "#666666" },
+					a = { bg = dark_gray, fg = "#666666" },
+					b = { bg = dark_gray, fg = "#666666" },
+					c = { bg = dark_gray, fg = "#666666" },
 				},
 			}
 
@@ -1562,12 +1567,13 @@ require("lazy").setup({
 						{
 							"branch",
 							icon = "",
-							padding = { left = 0, right = 1 },
-							color = { fg = "#4a90c2", bg = "#1e1e1e", gui = "bold" },
+							padding = { left = 1, right = 1 },
+							color = { fg = "#4a90c2", bg = dark_gray, gui = "bold" },
 						},
 						{
 							"filename",
-							color = { fg = "#ffffff", bg = "#1e1e1e" },
+							color = { fg = "#ffffff", bg = dark_gray },
+							padding = { left = 1, right = 1 },
 						},
 					},
 					lualine_c = {},
@@ -1584,25 +1590,13 @@ require("lazy").setup({
 						},
 						{
 							"mode",
-							color = { fg = "#4a90c2", bg = "#1e1e1e" },
+							color = { fg = "#4a90c2", bg = dark_gray, gui = "bold" },
 							padding = { left = 1, right = 1 },
 						},
 					},
 					lualine_z = {},
 				},
 			})
-
-			-- Create custom highlight groups
-			vim.cmd([[
-		highlight DiagnosticSection guifg=#ffffff guibg=#2a2a2a
-		highlight Arrow guifg=#2a2a2a guibg=#1e1e1e
-		highlight FilenameSection guifg=#ffffff guibg=#1e1e1e
-		highlight lualine_b_normal guifg=#ffffff guibg=#1e1e1e
-		highlight lualine_b_insert guifg=#ffffff guibg=#1e1e1e
-		highlight lualine_b_visual guifg=#ffffff guibg=#1e1e1e
-		highlight lualine_b_replace guifg=#ffffff guibg=#1e1e1e
-		highlight lualine_b_command guifg=#ffffff guibg=#1e1e1e
-	]])
 		end,
 	},
 
