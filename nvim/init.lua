@@ -99,6 +99,7 @@ vim.opt.undolevels = 500 -- Limit undo history in memory
 vim.opt.foldenable = false -- Diasble code folding
 vim.opt.foldmethod = "manual" -- Disable Neovim fold calculation
 vim.opt.shada = "'50" -- Minimal shada for jumplist only
+vim.opt.mousescroll = "ver:1,hor:1" -- Scroll 1 line at a time (vertical and horizontal)
 
 -- Basic keymaps
 vim.keymap.set("n", "<C-s>", ":w<CR>", { desc = "Save file with Ctrl+S" })
