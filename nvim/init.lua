@@ -183,10 +183,12 @@ vim.api.nvim_create_user_command("TermKill", function()
 	end
 end, { desc = "Kill the persistent terminal buffer" })
 
--- Simple buffer cleanup - only delete truly abandoned buffers
+-- Enhanced buffer cleanup - delete abandoned buffers and notify LSP servers
 vim.api.nvim_create_user_command("CleanBuffers", function()
 	local buffers = vim.api.nvim_list_bufs()
 	local closed = 0
+	local lsp_closed = {}
+
 	for _, buf in ipairs(buffers) do
 		-- Skip persistent terminal buffer
 		if buf == vim.g.persistent_term_buf then
@@ -206,6 +208,12 @@ vim.api.nvim_create_user_command("CleanBuffers", function()
 			and #vim.fn.win_findbuf(buf) == 0
 			and #vim.lsp.get_clients({ bufnr = buf }) == 0
 		then
+			-- Get the file URI before closing
+			local bufname = vim.api.nvim_buf_get_name(buf)
+			if bufname ~= "" then
+				table.insert(lsp_closed, vim.uri_from_bufnr(buf))
+			end
+
 			if pcall(vim.api.nvim_buf_delete, buf, { force = false }) then
 				closed = closed + 1
 			end
@@ -213,8 +221,25 @@ vim.api.nvim_create_user_command("CleanBuffers", function()
 
 		::continue::
 	end
-	print(string.format("Cleaned %d buffers", closed))
-end, { desc = "Clean up abandoned buffers" })
+
+	-- Tell LSP clients to close these files
+	if #lsp_closed > 0 then
+		local clients = vim.lsp.get_clients()
+		for _, client in ipairs(clients) do
+			for _, uri in ipairs(lsp_closed) do
+				-- Send didClose notification to free memory
+				pcall(function()
+					client.notify("textDocument/didClose", {
+						textDocument = { uri = uri },
+					})
+				end)
+			end
+		end
+		print(string.format("Cleaned %d buffers and notified LSP about %d closed files", closed, #lsp_closed))
+	else
+		print(string.format("Cleaned %d buffers", closed))
+	end
+end, { desc = "Clean up abandoned buffers and notify LSP" })
 
 -- Auto-clean every 10 minutes
 vim.fn.timer_start(10 * 60 * 1000, function()
@@ -227,6 +252,33 @@ vim.api.nvim_create_user_command("MemClean", function()
 	collectgarbage("collect")
 	print("Memory cleaned")
 end, { desc = "Clean buffers and garbage collect" })
+
+-- Universal LSP restart timer - restarts ALL attached LSP clients every 3 hours
+vim.fn.timer_start(3 * 60 * 60 * 1000, function()
+	vim.schedule(function()
+		local clients = vim.lsp.get_clients()
+		if #clients == 0 then
+			return
+		end
+
+		local client_names = {}
+		for _, client in ipairs(clients) do
+			table.insert(client_names, client.name)
+			vim.lsp.stop_client(client.id, true)
+		end
+
+		-- Notify user about the restart
+		vim.notify(
+			string.format("Auto-restarted LSP servers for memory management: %s", table.concat(client_names, ", ")),
+			vim.log.levels.INFO
+		)
+
+		-- Wait a moment then reload buffers to reattach LSP
+		vim.defer_fn(function()
+			vim.cmd("checktime")
+		end, 500)
+	end)
+end, { ["repeat"] = -1 })
 
 -- Removed detect_project_features() - now loading all LSP servers
 -- Auto-detect project venv for python3_host_prog
@@ -1039,6 +1091,8 @@ require("lazy").setup({
 							workspace = {
 								library = vim.api.nvim_get_runtime_file("", true),
 								checkThirdParty = false,
+								maxPreload = 2000, -- Limit preloaded files
+								preloadFileSize = 500, -- Limit file size (KB)
 							},
 							telemetry = {
 								enable = false,
@@ -1062,6 +1116,9 @@ require("lazy").setup({
 					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 					settings = {
 						typescript = {
+							tsserver = {
+								maxTsServerMemory = 4096, -- Cap memory at 4GB
+							},
 							inlayHints = {
 								includeInlayParameterNameHints = "all",
 								includeInlayParameterNameHintsWhenArgumentMatchesName = false,
@@ -1118,7 +1175,7 @@ require("lazy").setup({
 							lintTask = {
 								options = "--no-warn-ignored",
 							},
-							run = "onType",
+							run = "onSave", -- Changed from "onType" to reduce memory pressure
 							quiet = false,
 							rulesCustomizations = {},
 							problems = {
@@ -1182,7 +1239,7 @@ require("lazy").setup({
 								typeCheckingMode = "basic",
 								autoSearchPaths = true,
 								useLibraryCodeForTypes = true,
-								diagnosticMode = "workspace",
+								diagnosticMode = "openFilesOnly", -- Changed from "workspace" to reduce memory
 								autoImportCompletions = true,
 							},
 						},
