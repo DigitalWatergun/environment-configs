@@ -16,16 +16,21 @@
 vim.g.loaded_netrw = 1 -- fully disable netrw for nvim-tree
 vim.g.loaded_netrwPlugin = 1
 
+-- Cache module references to avoid repeated require() calls
+local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
+local nvim_tree_ok, nvim_tree_api = pcall(require, "nvim-tree.api")
+
 -- On FocusGained: check for external file changes, refresh Git signs, and reload the file‑tree if open
 local focus_grp = vim.api.nvim_create_augroup("FocusActions", { clear = true })
 vim.api.nvim_create_autocmd("FocusGained", {
 	group = focus_grp,
 	callback = function()
 		vim.cmd.checktime({ mods = { silent = true, emsg_silent = true } }) -- reload any changed buffers from disk
-		pcall(require("gitsigns").refresh) -- refresh gitsigns gutter
-		local api = require("nvim-tree.api") -- reload nvim-tree if it's open
-		if api.tree.is_visible() then
-			api.tree.reload()
+		if gitsigns_ok then
+			pcall(gitsigns.refresh) -- refresh gitsigns gutter
+		end
+		if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
+			nvim_tree_api.tree.reload() -- reload nvim-tree if it's open
 		end
 	end,
 })
@@ -184,11 +189,10 @@ vim.api.nvim_create_user_command("TermKill", function()
 	end
 end, { desc = "Kill the persistent terminal buffer" })
 
--- Enhanced buffer cleanup - delete abandoned buffers and notify LSP servers
+-- Buffer cleanup - delete abandoned buffers (Neovim memory only, not LSP)
 vim.api.nvim_create_user_command("CleanBuffers", function()
 	local buffers = vim.api.nvim_list_bufs()
 	local closed = 0
-	local lsp_closed = {}
 
 	for _, buf in ipairs(buffers) do
 		-- Skip persistent terminal buffer
@@ -209,12 +213,6 @@ vim.api.nvim_create_user_command("CleanBuffers", function()
 			and #vim.fn.win_findbuf(buf) == 0
 			and #vim.lsp.get_clients({ bufnr = buf }) == 0
 		then
-			-- Get the file URI before closing
-			local bufname = vim.api.nvim_buf_get_name(buf)
-			if bufname ~= "" then
-				table.insert(lsp_closed, vim.uri_from_bufnr(buf))
-			end
-
 			if pcall(vim.api.nvim_buf_delete, buf, { force = false }) then
 				closed = closed + 1
 			end
@@ -223,27 +221,14 @@ vim.api.nvim_create_user_command("CleanBuffers", function()
 		::continue::
 	end
 
-	-- Tell LSP clients to close these files
-	if #lsp_closed > 0 then
-		local clients = vim.lsp.get_clients()
-		for _, client in ipairs(clients) do
-			for _, uri in ipairs(lsp_closed) do
-				-- Send didClose notification to free memory
-				pcall(function()
-					client.notify("textDocument/didClose", {
-						textDocument = { uri = uri },
-					})
-				end)
-			end
-		end
-		print(string.format("Cleaned %d buffers and notified LSP about %d closed files", closed, #lsp_closed))
-	else
-		print(string.format("Cleaned %d buffers", closed))
-	end
-end, { desc = "Clean up abandoned buffers and notify LSP" })
+	print(string.format("Cleaned %d buffers", closed))
+end, { desc = "Clean up abandoned buffers" })
 
--- Auto-clean every 10 minutes
-vim.fn.timer_start(10 * 60 * 1000, function()
+-- Auto-clean every 10 minutes (stop old timer first to prevent accumulation)
+if vim.g.buffer_cleanup_timer then
+	vim.fn.timer_stop(vim.g.buffer_cleanup_timer)
+end
+vim.g.buffer_cleanup_timer = vim.fn.timer_start(10 * 60 * 1000, function()
 	vim.cmd("CleanBuffers")
 end, { ["repeat"] = -1 })
 
@@ -255,7 +240,11 @@ vim.api.nvim_create_user_command("MemClean", function()
 end, { desc = "Clean buffers and garbage collect" })
 
 -- Universal LSP restart timer - restarts ALL attached LSP clients every 3 hours
-vim.fn.timer_start(3 * 60 * 60 * 1000, function()
+-- (stop old timer first to prevent accumulation)
+if vim.g.lsp_restart_timer then
+	vim.fn.timer_stop(vim.g.lsp_restart_timer)
+end
+vim.g.lsp_restart_timer = vim.fn.timer_start(3 * 60 * 60 * 1000, function()
 	vim.schedule(function()
 		local clients = vim.lsp.get_clients()
 		if #clients == 0 then
@@ -306,7 +295,14 @@ local function find_project_python()
 	return vim.fn.exepath("python3")
 end
 
+-- Cache Python path to avoid repeated shell commands
+local last_python_dir = nil
 local function set_python_host()
+	local cwd = vim.fn.getcwd()
+	if cwd == last_python_dir then
+		return -- Skip if directory hasn't changed
+	end
+	last_python_dir = cwd
 	vim.g.python3_host_prog = find_project_python()
 end
 
@@ -458,6 +454,7 @@ require("lazy").setup({
 			local blue = "#4A90C2"
 			local green = "#84d675"
 			local terminal_bg = "#1e1e1e"
+			local lualine_bg = "#2a2a2a"
 
 			-- Match terminal background color
 			vim.api.nvim_set_hl(0, "Normal", { bg = terminal_bg })
@@ -467,6 +464,10 @@ require("lazy").setup({
 			-- Fix the statusline background under nvim-tree
 			vim.api.nvim_set_hl(0, "StatusLine", { bg = terminal_bg, fg = "#ffffff" })
 			vim.api.nvim_set_hl(0, "StatusLineNC", { bg = terminal_bg, fg = "#666666" })
+
+			-- Treesitter context background (same as lualine for differentiation)
+			vim.api.nvim_set_hl(0, "TreesitterContext", { bg = lualine_bg })
+			vim.api.nvim_set_hl(0, "TreesitterContextLineNumber", { bg = lualine_bg })
 
 			-- folder icons & names
 			vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = blue, bold = true })
@@ -725,13 +726,18 @@ require("lazy").setup({
 		config = function()
 			local conform = require("conform")
 
-			-- helper to detect a Python venv and prepend its bin/ to PATH
-			local function venv_path()
-				local venv = os.getenv("VIRTUAL_ENV")
-				if venv and #venv > 0 then
-					return venv .. "/bin:" .. vim.env.PATH
+			-- Cache venv PATH table to avoid recreating it on every format (refreshes every 60 seconds)
+			local cached_venv_env = nil
+			local cached_venv_time = 0
+			local function get_venv_env()
+				local now = os.time()
+				if not cached_venv_env or (now - cached_venv_time) > 60 then
+					local venv = os.getenv("VIRTUAL_ENV")
+					local path = (venv and #venv > 0) and (venv .. "/bin:" .. vim.env.PATH) or vim.env.PATH
+					cached_venv_env = { PATH = path }
+					cached_venv_time = now
 				end
-				return vim.env.PATH
+				return cached_venv_env
 			end
 
 			conform.setup({
@@ -741,19 +747,19 @@ require("lazy").setup({
 						command = "ruff",
 						args = { "format", "--stdin-filename", "$FILENAME", "-" },
 						stdin = true,
-						env = { PATH = venv_path() },
+						env = get_venv_env(),
 					},
 					ruff_organize_imports = {
 						command = "ruff",
 						args = { "check", "--fix", "--select", "I", "--stdin-filename", "$FILENAME", "-" },
 						stdin = true,
-						env = { PATH = venv_path() },
+						env = get_venv_env(),
 					},
 					black = {
 						command = "black",
 						args = { "--quiet", "-" },
 						stdin = true,
-						env = { PATH = venv_path() },
+						env = get_venv_env(),
 					},
 
 					-- JS/TS via Prettier
@@ -1118,7 +1124,7 @@ require("lazy").setup({
 					settings = {
 						typescript = {
 							tsserver = {
-								maxTsServerMemory = 4096, -- Cap memory at 4GB
+								maxTsServerMemory = 2048, -- Cap at 2GB (increase to 4096 if experiencing performance issues)
 							},
 							inlayHints = {
 								includeInlayParameterNameHints = "all",
@@ -1456,7 +1462,10 @@ require("lazy").setup({
 			-- ============================================
 			-- FILTER ESLINT "FILE IGNORED" WARNINGS
 			-- ============================================
-			local original_handler = vim.lsp.handlers["textDocument/publishDiagnostics"]
+			-- Store the original handler once, globally, to prevent memory leak on config reload
+			if not vim.g.original_diagnostics_handler then
+				vim.g.original_diagnostics_handler = vim.lsp.handlers["textDocument/publishDiagnostics"]
+			end
 
 			---@diagnostic disable-next-line: duplicate-set-field
 			vim.lsp.handlers["textDocument/publishDiagnostics"] = function(err, result, ctx, handler_config)
@@ -1476,8 +1485,9 @@ require("lazy").setup({
 				end
 
 				-- Call the original handler
-				return original_handler(err, result, ctx, handler_config)
+				return vim.g.original_diagnostics_handler(err, result, ctx, handler_config)
 			end
+
 		end,
 	},
 
