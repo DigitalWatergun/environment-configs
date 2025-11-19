@@ -1748,3 +1748,20 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 		end
 	end,
 })
+
+-- Refresh gitsigns and nvim-tree after write (for when you commit without leaving neovim)
+vim.api.nvim_create_autocmd("BufWritePost", {
+	group = save_hooks,
+	pattern = "*",
+	callback = function()
+		-- Small delay to let git operations complete
+		vim.defer_fn(function()
+			if gitsigns_ok then
+				pcall(gitsigns.refresh)
+			end
+			if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
+				nvim_tree_api.tree.reload()
+			end
+		end, 100)
+	end,
+})
