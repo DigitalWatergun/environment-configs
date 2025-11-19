@@ -17,7 +17,6 @@ vim.g.loaded_netrw = 1 -- fully disable netrw for nvim-tree
 vim.g.loaded_netrwPlugin = 1
 
 -- Cache module references to avoid repeated require() calls
-local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 local nvim_tree_ok, nvim_tree_api = pcall(require, "nvim-tree.api")
 
 -- On FocusGained: check for external file changes, refresh Git signs, and reload the file‑tree if open
@@ -1711,6 +1710,7 @@ vim.api.nvim_create_autocmd("FileType", {
 
 local conform = require("conform")
 local lint = require("lint")
+local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 
 -- Async format+lint before write
 local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
