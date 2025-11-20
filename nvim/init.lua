@@ -1010,6 +1010,11 @@ require("lazy").setup({
 					changedelete = { text = "▎" },
 				},
 				current_line_blame = false, -- disable inline blame by default
+				watch_gitdir = {
+					enable = true,
+					interval = 500,
+					follow_files = true,
+				},
 			})
 		end,
 	},
@@ -1754,14 +1759,16 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 	group = save_hooks,
 	pattern = "*",
 	callback = function()
-		-- Small delay to let git operations complete
+		-- Longer delay to ensure formatters complete and git operations finish
 		vim.defer_fn(function()
+			-- Reload buffer from disk to ensure we have the exact file content that was written
+			vim.cmd.checktime()
 			if gitsigns_ok then
 				pcall(gitsigns.refresh)
 			end
 			if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
 				nvim_tree_api.tree.reload()
 			end
-		end, 100)
+		end, 500)
 	end,
 })
