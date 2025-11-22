@@ -1046,6 +1046,32 @@ require("lazy").setup({
 					end
 				end,
 			})
+
+			-- Refresh when leaving terminal mode (for git operations in terminal)
+			vim.api.nvim_create_autocmd("TermLeave", {
+				group = gitsigns_refresh_grp,
+				callback = function()
+					-- Wait a moment for git operations to complete
+					vim.defer_fn(function()
+						vim.cmd.checktime({ mods = { silent = true, emsg_silent = true } })
+						local gs_ok, gs = pcall(require, "gitsigns")
+						if gs_ok then
+							-- Refresh all markdown buffers
+							for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+								if vim.api.nvim_buf_is_loaded(buf) then
+									local bufname = vim.api.nvim_buf_get_name(buf)
+									if bufname:match("%.md$") then
+										pcall(gs.refresh, buf)
+									end
+								end
+							end
+						end
+						if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
+							nvim_tree_api.tree.reload()
+						end
+					end, 300)
+				end,
+			})
 		end,
 	},
 
