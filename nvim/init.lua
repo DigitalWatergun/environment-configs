@@ -1023,22 +1023,27 @@ require("lazy").setup({
 
 			local gitsigns_refresh_grp = vim.api.nvim_create_augroup("GitsignsRefresh", { clear = true })
 
-			vim.api.nvim_create_autocmd({ "BufWritePost", "FocusGained", "BufEnter" }, {
+			-- Aggressive git status refresh on window focus for ALL files
+			vim.api.nvim_create_autocmd("FocusGained", {
 				group = gitsigns_refresh_grp,
-				pattern = "*.md",
 				callback = function()
 					local gs_ok, gs = pcall(require, "gitsigns")
 					if gs_ok then
+						-- Force refresh all buffers after a delay
 						vim.defer_fn(function()
-							pcall(gs.refresh)
-						end, 200)
+							for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+								if vim.api.nvim_buf_is_loaded(buf) then
+									pcall(gs.refresh, buf)
+								end
+							end
+						end, 100)
 					end
 				end,
 			})
 
-			vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+			-- Refresh on save, enter, and after cursor stops moving
+			vim.api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "CursorHold", "CursorHoldI" }, {
 				group = gitsigns_refresh_grp,
-				pattern = "*.md",
 				callback = function()
 					local gs_ok, gs = pcall(require, "gitsigns")
 					if gs_ok then
