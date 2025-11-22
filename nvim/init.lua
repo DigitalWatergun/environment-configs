@@ -18,6 +18,7 @@ vim.g.loaded_netrwPlugin = 1
 
 -- Cache module references to avoid repeated require() calls
 local nvim_tree_ok, nvim_tree_api = pcall(require, "nvim-tree.api")
+local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 
 -- On FocusGained: check for external file changes, refresh Git signs, and reload the file‑tree if open
 local focus_grp = vim.api.nvim_create_augroup("FocusActions", { clear = true })
@@ -1012,9 +1013,38 @@ require("lazy").setup({
 				current_line_blame = false, -- disable inline blame by default
 				watch_gitdir = {
 					enable = true,
-					interval = 500,
+					interval = 200,
 					follow_files = true,
 				},
+				update_debounce = 100,
+				attach_to_untracked = true,
+				sign_priority = 6,
+			})
+
+			local gitsigns_refresh_grp = vim.api.nvim_create_augroup("GitsignsRefresh", { clear = true })
+
+			vim.api.nvim_create_autocmd({ "BufWritePost", "FocusGained", "BufEnter" }, {
+				group = gitsigns_refresh_grp,
+				pattern = "*.md",
+				callback = function()
+					local gs_ok, gs = pcall(require, "gitsigns")
+					if gs_ok then
+						vim.defer_fn(function()
+							pcall(gs.refresh)
+						end, 200)
+					end
+				end,
+			})
+
+			vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+				group = gitsigns_refresh_grp,
+				pattern = "*.md",
+				callback = function()
+					local gs_ok, gs = pcall(require, "gitsigns")
+					if gs_ok then
+						pcall(gs.refresh)
+					end
+				end,
 			})
 		end,
 	},
@@ -1714,7 +1744,6 @@ vim.api.nvim_create_autocmd("FileType", {
 
 local conform = require("conform")
 local lint = require("lint")
-local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 
 -- Async format+lint before write
 local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
