@@ -16,21 +16,15 @@
 vim.g.loaded_netrw = 1 -- fully disable netrw for nvim-tree
 vim.g.loaded_netrwPlugin = 1
 
--- Cache module references to avoid repeated require() calls
 local nvim_tree_ok, nvim_tree_api = pcall(require, "nvim-tree.api")
-local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 
--- On FocusGained: check for external file changes, refresh Git signs, and reload the file‑tree if open
 local focus_grp = vim.api.nvim_create_augroup("FocusActions", { clear = true })
 vim.api.nvim_create_autocmd("FocusGained", {
 	group = focus_grp,
 	callback = function()
-		vim.cmd.checktime({ mods = { silent = true, emsg_silent = true } }) -- reload any changed buffers from disk
-		if gitsigns_ok then
-			pcall(gitsigns.refresh) -- refresh gitsigns gutter
-		end
+		vim.cmd.checktime({ mods = { silent = true, emsg_silent = true } })
 		if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
-			nvim_tree_api.tree.reload() -- reload nvim-tree if it's open
+			nvim_tree_api.tree.reload()
 		end
 	end,
 })
@@ -583,18 +577,8 @@ require("lazy").setup({
 				end,
 			})
 
-			-- Gray out the “ignored” status (icon + name)
+			-- Gray out the "ignored" status (icon + name)
 			vim.api.nvim_set_hl(0, "NvimTreeGitIgnoredHL", { fg = "#5c6370" })
-
-			vim.api.nvim_create_augroup("NvimTreeAutoRefresh", { clear = true })
-			vim.api.nvim_create_autocmd("FocusGained", {
-				group = "NvimTreeAutoRefresh",
-				callback = function()
-					if api.tree.is_visible() then
-						api.tree.reload()
-					end
-				end,
-			})
 		end,
 		keys = {
 			{ "<leader>e", ":NvimTreeToggle<CR>", desc = "Toggle file explorer" },
@@ -1010,72 +994,12 @@ require("lazy").setup({
 					topdelete = { text = "契" },
 					changedelete = { text = "▎" },
 				},
-				current_line_blame = false, -- disable inline blame by default
+				current_line_blame = false,
 				watch_gitdir = {
 					enable = true,
-					interval = 200,
+					interval = 1000,
 					follow_files = true,
 				},
-				update_debounce = 100,
-				attach_to_untracked = true,
-				sign_priority = 6,
-			})
-
-			local gitsigns_refresh_grp = vim.api.nvim_create_augroup("GitsignsRefresh", { clear = true })
-
-			-- Aggressive git status refresh on window focus for ALL files
-			vim.api.nvim_create_autocmd("FocusGained", {
-				group = gitsigns_refresh_grp,
-				callback = function()
-					local gs_ok, gs = pcall(require, "gitsigns")
-					if gs_ok then
-						-- Force refresh all buffers after a delay
-						vim.defer_fn(function()
-							for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-								if vim.api.nvim_buf_is_loaded(buf) then
-									pcall(gs.refresh, buf)
-								end
-							end
-						end, 100)
-					end
-				end,
-			})
-
-			-- Refresh on save, enter, and after cursor stops moving
-			vim.api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "CursorHold", "CursorHoldI" }, {
-				group = gitsigns_refresh_grp,
-				callback = function()
-					local gs_ok, gs = pcall(require, "gitsigns")
-					if gs_ok then
-						pcall(gs.refresh)
-					end
-				end,
-			})
-
-			-- Refresh when leaving terminal mode (for git operations in terminal)
-			vim.api.nvim_create_autocmd("TermLeave", {
-				group = gitsigns_refresh_grp,
-				callback = function()
-					-- Wait a moment for git operations to complete
-					vim.defer_fn(function()
-						vim.cmd.checktime({ mods = { silent = true, emsg_silent = true } })
-						local gs_ok, gs = pcall(require, "gitsigns")
-						if gs_ok then
-							-- Refresh all markdown buffers
-							for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-								if vim.api.nvim_buf_is_loaded(buf) then
-									local bufname = vim.api.nvim_buf_get_name(buf)
-									if bufname:match("%.md$") then
-										pcall(gs.refresh, buf)
-									end
-								end
-							end
-						end
-						if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
-							nvim_tree_api.tree.reload()
-						end
-					end, 300)
-				end,
 			})
 		end,
 	},
@@ -1775,6 +1699,7 @@ vim.api.nvim_create_autocmd("FileType", {
 
 local conform = require("conform")
 local lint = require("lint")
+local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 
 -- Async format+lint before write
 local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
@@ -1813,21 +1738,14 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	end,
 })
 
--- Refresh gitsigns and nvim-tree after write (for when you commit without leaving neovim)
 vim.api.nvim_create_autocmd("BufWritePost", {
 	group = save_hooks,
 	pattern = "*",
 	callback = function()
-		-- Longer delay to ensure formatters complete and git operations finish
 		vim.defer_fn(function()
-			-- Reload buffer from disk to ensure we have the exact file content that was written
-			vim.cmd.checktime()
-			if gitsigns_ok then
-				pcall(gitsigns.refresh)
-			end
 			if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
 				nvim_tree_api.tree.reload()
 			end
-		end, 500)
+		end, 200)
 	end,
 })
