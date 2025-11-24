@@ -16,7 +16,7 @@
 vim.g.loaded_netrw = 1 -- fully disable netrw for nvim-tree
 vim.g.loaded_netrwPlugin = 1
 
-local nvim_tree_ok, nvim_tree_api = pcall(require, "nvim-tree.api")
+local nvim_tree_ok, nvim_tree_api = false, nil
 
 local focus_grp = vim.api.nvim_create_augroup("FocusActions", { clear = true })
 vim.api.nvim_create_autocmd("FocusGained", {
@@ -95,7 +95,7 @@ vim.opt.writebackup = true -- Temporary backup during write
 vim.opt.swapfile = false -- No swap files (.file.txt.swp)
 vim.opt.undofile = false -- No persistent undo file
 vim.opt.undolevels = 500 -- Limit undo history in memory
-vim.opt.foldenable = false -- Diasble code folding
+vim.opt.foldenable = false -- Disable code folding
 vim.opt.foldmethod = "manual" -- Disable Neovim fold calculation
 vim.opt.shada = "'50" -- Minimal shada for jumplist only
 vim.opt.mousescroll = "ver:1,hor:1" -- Scroll 1 line at a time (vertical and horizontal)
@@ -257,10 +257,16 @@ vim.g.lsp_restart_timer = vim.fn.timer_start(3 * 60 * 60 * 1000, function()
 			vim.log.levels.INFO
 		)
 
-		-- Wait a moment then reload buffers to reattach LSP
+		-- Wait a moment then reload all buffers to reattach LSP
 		vim.defer_fn(function()
-			vim.cmd("checktime")
-		end, 500)
+			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+				if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "" then
+					vim.api.nvim_buf_call(buf, function()
+						vim.cmd("edit")
+					end)
+				end
+			end
+		end, 1000)
 	end)
 end, { ["repeat"] = -1 })
 
@@ -485,7 +491,8 @@ require("lazy").setup({
 		"nvim-tree/nvim-tree.lua",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			local api = require("nvim-tree.api")
+			nvim_tree_api = require("nvim-tree.api")
+			nvim_tree_ok = true
 
 			require("nvim-tree").setup({
 				view = { width = 40 },
@@ -546,33 +553,33 @@ require("lazy").setup({
 					-- remap <CR>, o, <2-LeftMouse> to save-first, then open
 					vim.keymap.set("n", "<CR>", function()
 						save_prev()
-						api.node.open.edit()
+						nvim_tree_api.node.open.edit()
 					end, buf_opts("Open file"))
 					vim.keymap.set("n", "o", function()
 						save_prev()
-						api.node.open.edit()
+						nvim_tree_api.node.open.edit()
 					end, buf_opts("Open file"))
 					vim.keymap.set("n", "<2-LeftMouse>", function()
 						save_prev()
-						api.node.open.edit()
+						nvim_tree_api.node.open.edit()
 					end, buf_opts("Open file"))
 
-					vim.keymap.set("n", "a", function() -- override 'a' to save then create file
+					vim.keymap.set("n", "a", function()
 						save_prev()
-						api.fs.create()
+						nvim_tree_api.fs.create()
 					end, buf_opts("Add file"))
 
-					vim.keymap.set("n", "A", function() -- override 'A' to save then create directory
+					vim.keymap.set("n", "A", function()
 						save_prev()
-						api.fs.create({ dir = true })
+						nvim_tree_api.fs.create({ dir = true })
 					end, buf_opts("Add directory"))
-					vim.keymap.set("n", "d", function() -- override 'd' to save then delete
+					vim.keymap.set("n", "d", function()
 						save_prev()
-						api.fs.remove()
+						nvim_tree_api.fs.remove()
 					end, buf_opts("Delete"))
 					vim.keymap.set("n", "<C-t>", function()
 						save_prev()
-						api.node.open.tab()
+						nvim_tree_api.node.open.tab()
 					end, buf_opts("Open file in new tab"))
 				end,
 			})
