@@ -1561,20 +1561,20 @@ require("lazy").setup({
 		"sphamba/smear-cursor.nvim",
 		dependencies = { "lewis6991/gitsigns.nvim" },
 		opts = {
-			smear_between_buffers = true, -- smear when switching buffers
-			smear_between_neighbor_lines = true, -- smear when moving line-to-line
-			scroll_buffer_space = true, -- draw smear in buffer space when scrolling
-			smear_insert_mode = true, -- enable in insert mode
+			smear_between_buffers = true,
+			smear_between_neighbor_lines = true,
+			scroll_buffer_space = true,
+			smear_insert_mode = true,
 			hide_target_hack = false,
 			never_draw_over_target = true,
-			stiffness = 0.6,
-			trailing_stiffness = 0.3,
-			stiffness_insert_mode = 0.5,
-			trailing_stiffness_insert_mode = 0.3,
-			damping = 0.75,
-			damping_insert_mode = 0.75,
-			distance_stop_animating = 0.5,
-			time_interval = 7,
+			stiffness = 0.8,
+			trailing_stiffness = 0.5,
+			stiffness_insert_mode = 0.7,
+			trailing_stiffness_insert_mode = 0.5,
+			damping = 0.85,
+			damping_insert_mode = 0.85,
+			distance_stop_animating = 0.3,
+			time_interval = 5,
 		},
 	},
 
