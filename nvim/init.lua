@@ -23,7 +23,7 @@ vim.api.nvim_create_autocmd("FocusGained", {
 	group = focus_grp,
 	callback = function()
 		vim.cmd.checktime({ mods = { silent = true, emsg_silent = true } })
-		if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
+		if nvim_tree_ok and nvim_tree_api and nvim_tree_api.tree.is_visible() then
 			nvim_tree_api.tree.reload()
 		end
 	end,
@@ -1656,7 +1656,6 @@ vim.api.nvim_create_autocmd("FileType", {
 
 local conform = require("conform")
 local lint = require("lint")
-local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 
 -- Async format+lint before write
 local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
@@ -1700,7 +1699,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 	pattern = "*",
 	callback = function()
 		vim.defer_fn(function()
-			if nvim_tree_ok and nvim_tree_api.tree.is_visible() then
+			if nvim_tree_ok and nvim_tree_api and nvim_tree_api.tree.is_visible() then
 				nvim_tree_api.tree.reload()
 			end
 		end, 200)
