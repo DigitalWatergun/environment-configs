@@ -210,7 +210,7 @@ vim.g.lsp_restart_timer = vim.fn.timer_start(3 * 60 * 60 * 1000, function()
 		-- Wait a moment then reload all buffers to reattach LSP
 		vim.defer_fn(function()
 			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-				if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "" then
+				if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "" and not vim.bo[buf].modified then
 					vim.api.nvim_buf_call(buf, function()
 						vim.cmd("edit")
 					end)
@@ -1656,6 +1656,7 @@ vim.api.nvim_create_autocmd("FileType", {
 
 local conform = require("conform")
 local lint = require("lint")
+local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 
 -- Async format+lint before write
 local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
