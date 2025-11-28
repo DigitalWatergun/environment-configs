@@ -183,43 +183,6 @@ vim.api.nvim_create_user_command("TermKill", function()
 	end
 end, { desc = "Kill the persistent terminal buffer" })
 
--- Universal LSP restart timer - restarts ALL attached LSP clients every 3 hours
--- (stop old timer first to prevent accumulation)
-if vim.g.lsp_restart_timer then
-	vim.fn.timer_stop(vim.g.lsp_restart_timer)
-end
-vim.g.lsp_restart_timer = vim.fn.timer_start(3 * 60 * 60 * 1000, function()
-	vim.schedule(function()
-		local clients = vim.lsp.get_clients()
-		if #clients == 0 then
-			return
-		end
-
-		local client_names = {}
-		for _, client in ipairs(clients) do
-			table.insert(client_names, client.name)
-			vim.lsp.stop_client(client.id, true)
-		end
-
-		-- Notify user about the restart
-		vim.notify(
-			string.format("Auto-restarted LSP servers for memory management: %s", table.concat(client_names, ", ")),
-			vim.log.levels.INFO
-		)
-
-		-- Wait a moment then reload all buffers to reattach LSP
-		vim.defer_fn(function()
-			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-				if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "" and not vim.bo[buf].modified then
-					vim.api.nvim_buf_call(buf, function()
-						vim.cmd("edit")
-					end)
-				end
-			end
-		end, 1000)
-	end)
-end, { ["repeat"] = -1 })
-
 -- Removed detect_project_features() - now loading all LSP servers
 -- Auto-detect project venv for python3_host_prog
 local function find_project_python()
