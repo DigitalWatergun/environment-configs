@@ -19,16 +19,10 @@ set -g status-interval 1
 set -g status-position bottom 
 set -g status-style "bg=default,fg=white,bold"
 
-# Session name in blue with powerline separator  
-# Dynamic OS icon: macOS = , Arch Linux = , Other Linux = 
+# Session name in blue with powerline separator
+# Dynamic OS icon: macOS = , Linux =
 set -g status-left-length 50
-
-# Detect OS and set appropriate icon (matches powerlevel10k behavior)
-if-shell 'test "$(uname)" = "Darwin"' \
-  'set -g status-left "#[bg=default,fg=#4a90c2,nobold]    #[bg=default,fg=#D6D8D7,nobold]"\ue0b1"#[bg=default,fg=white,bold] #S #[fg=#4a90c2,bg=default]#[bg=default,fg=white,nobold]"\ue0b1" "' \
-  'if-shell "grep -qi arch /etc/os-release 2>/dev/null" \
-    "set -g status-left \"#[bg=default,fg=#4a90c2,nobold]    #[bg=default,fg=#D6D8D7,nobold]\"\\ue0b1\"#[bg=default,fg=white,bold] #S #[fg=#4a90c2,bg=default]#[bg=default,fg=white,nobold]\"\\ue0b1\" \"" \
-    "set -g status-left \"#[bg=default,fg=#4a90c2,nobold]    #[bg=default,fg=#D6D8D7,nobold]\"\\ue0b1\"#[bg=default,fg=white,bold] #S #[fg=#4a90c2,bg=default]#[bg=default,fg=white,nobold]\"\\ue0b1\" \""'
+set -g status-left "#[bg=default,fg=#4a90c2,nobold]    #[bg=default,fg=#D6D8D7,nobold]"\ue0b1"#[bg=default,fg=white,bold] #S #[fg=#4a90c2,bg=default]#[bg=default,fg=white,nobold]"\ue0b1" "
 
 # Active window
 set -g window-status-current-style "bg=default,fg=#4a90c2,bold"
