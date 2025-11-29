@@ -19,47 +19,57 @@ fi
 
 echo -e "${GREEN}Starting environment setup...${NC}\n"
 
+# Update Oh My Zsh local copy if possible (whether installed or not)
+echo -e "${YELLOW}Attempting to update Oh My Zsh local copy...${NC}"
+if git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$REPO_DIR/ohmyzsh/ohmyzsh.tmp" 2>/dev/null; then
+    echo -e "${GREEN}Successfully cloned latest Oh My Zsh, updating local copy...${NC}"
+    rm -rf "$REPO_DIR/ohmyzsh/ohmyzsh.tmp/.git"
+    rm -rf "$REPO_DIR/ohmyzsh/ohmyzsh"
+    mv "$REPO_DIR/ohmyzsh/ohmyzsh.tmp" "$REPO_DIR/ohmyzsh/ohmyzsh"
+else
+    echo -e "${YELLOW}Could not clone Oh My Zsh (using existing local copy)${NC}"
+fi
+
 # Install Oh My Zsh if it doesn't exist
 if [ -d "$HOME/.oh-my-zsh" ]; then
-    echo -e "${YELLOW}Oh My Zsh already installed, skipping...${NC}\n"
+    echo -e "${YELLOW}Oh My Zsh already installed, skipping installation...${NC}\n"
 else
-    # Try to clone the latest version first
-    echo -e "${YELLOW}Attempting to clone latest Oh My Zsh...${NC}"
-    if git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$REPO_DIR/ohmyzsh/ohmyzsh.tmp" 2>/dev/null; then
-        echo -e "${GREEN}Successfully cloned Oh My Zsh, updating local copy...${NC}"
-        rm -rf "$REPO_DIR/ohmyzsh/ohmyzsh.tmp/.git"
-        rm -rf "$REPO_DIR/ohmyzsh/ohmyzsh"
-        mv "$REPO_DIR/ohmyzsh/ohmyzsh.tmp" "$REPO_DIR/ohmyzsh/ohmyzsh"
-    else
-        echo -e "${YELLOW}Could not clone Oh My Zsh (using existing local copy)${NC}"
-    fi
-
     echo -e "${YELLOW}Installing Oh My Zsh...${NC}"
-    cp -r "$REPO_DIR/ohmyzsh/ohmyzsh" "$HOME/.oh-my-zsh"
-    echo -e "${GREEN}Oh My Zsh installed from local repository${NC}\n"
+    if [ -d "$REPO_DIR/ohmyzsh/ohmyzsh" ]; then
+        cp -r "$REPO_DIR/ohmyzsh/ohmyzsh" "$HOME/.oh-my-zsh"
+        echo -e "${GREEN}Oh My Zsh installed from local repository${NC}\n"
+    else
+        echo -e "${RED}ERROR: Local Oh My Zsh copy not found!${NC}\n"
+        exit 1
+    fi
+fi
+
+# Update Powerlevel10k local copy if possible (whether installed or not)
+echo -e "${YELLOW}Attempting to update Powerlevel10k local copy...${NC}"
+if git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$REPO_DIR/p10k/powerlevel10k.tmp" 2>/dev/null; then
+    echo -e "${GREEN}Successfully cloned latest Powerlevel10k, updating local copy...${NC}"
+    rm -rf "$REPO_DIR/p10k/powerlevel10k.tmp/.git"
+    rm -rf "$REPO_DIR/p10k/powerlevel10k"
+    mv "$REPO_DIR/p10k/powerlevel10k.tmp" "$REPO_DIR/p10k/powerlevel10k"
+else
+    echo -e "${YELLOW}Could not clone Powerlevel10k (using existing local copy)${NC}"
 fi
 
 # Install Powerlevel10k if it doesn't exist
 P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
 
 if [ -d "$P10K_DIR" ]; then
-    echo -e "${YELLOW}Powerlevel10k already installed, skipping...${NC}\n"
+    echo -e "${YELLOW}Powerlevel10k already installed, skipping installation...${NC}\n"
 else
-    # Try to clone the latest version first
-    echo -e "${YELLOW}Attempting to clone latest Powerlevel10k...${NC}"
-    if git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$REPO_DIR/p10k/powerlevel10k.tmp" 2>/dev/null; then
-        echo -e "${GREEN}Successfully cloned Powerlevel10k, updating local copy...${NC}"
-        rm -rf "$REPO_DIR/p10k/powerlevel10k.tmp/.git"
-        rm -rf "$REPO_DIR/p10k/powerlevel10k"
-        mv "$REPO_DIR/p10k/powerlevel10k.tmp" "$REPO_DIR/p10k/powerlevel10k"
-    else
-        echo -e "${YELLOW}Could not clone Powerlevel10k (using existing local copy)${NC}"
-    fi
-
     echo -e "${YELLOW}Installing Powerlevel10k...${NC}"
-    mkdir -p "$(dirname "$P10K_DIR")"
-    cp -r "$REPO_DIR/p10k/powerlevel10k" "$P10K_DIR"
-    echo -e "${GREEN}Powerlevel10k installed from local repository${NC}\n"
+    if [ -d "$REPO_DIR/p10k/powerlevel10k" ]; then
+        mkdir -p "$(dirname "$P10K_DIR")"
+        cp -r "$REPO_DIR/p10k/powerlevel10k" "$P10K_DIR"
+        echo -e "${GREEN}Powerlevel10k installed from local repository${NC}\n"
+    else
+        echo -e "${RED}ERROR: Local Powerlevel10k copy not found!${NC}\n"
+        exit 1
+    fi
 fi
 
 # Copy Zsh configuration
