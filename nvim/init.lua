@@ -1619,7 +1619,6 @@ vim.api.nvim_create_autocmd("FileType", {
 
 local conform = require("conform")
 local lint = require("lint")
-local gitsigns_ok, gitsigns = pcall(require, "gitsigns")
 
 -- Async format+lint before write
 local save_hooks = vim.api.nvim_create_augroup("SaveHooks", { clear = true })
