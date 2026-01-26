@@ -369,9 +369,9 @@ require("lazy").setup({
 			local terminal_bg = "#1e1e1e"
 			local lualine_bg = "#2a2a2a"
 
-			-- Match terminal background color
-			vim.api.nvim_set_hl(0, "Normal", { bg = terminal_bg })
-			vim.api.nvim_set_hl(0, "NormalFloat", { bg = terminal_bg })
+			-- Match terminal background color (preserve fg from molokai)
+			vim.api.nvim_set_hl(0, "Normal", { bg = terminal_bg, fg = "#F8F8F2" })
+			vim.api.nvim_set_hl(0, "NormalFloat", { bg = terminal_bg, fg = "#F8F8F2" })
 			vim.api.nvim_set_hl(0, "NvimTreeNormal", { bg = terminal_bg })
 
 			-- Fix the statusline background under nvim-tree
@@ -508,39 +508,36 @@ require("lazy").setup({
 	-- Syntax highlighting - makes code colorful and properly formatted
 	{
 		"nvim-treesitter/nvim-treesitter",
+		lazy = false, -- v1.0 does NOT support lazy-loading
 		build = ":TSUpdate",
 		config = function()
-			require("nvim-treesitter.configs").setup({
-				-- Install parsers for these languages automatically
-				ensure_installed = {
-					"lua",
-					"python",
-					"javascript",
-					"typescript",
-					"html",
-					"css",
-					"go",
-					"gomod",
-					"gosum",
-					"php",
-					"sql",
-					"terraform",
-				},
-				-- Add these fields to satisfy the type checker
-				sync_install = false, -- Install parsers synchronously (only applied to `ensure_installed`)
-				auto_install = false, -- Automatically install missing parsers when entering buffer
-				ignore_install = {}, -- List of parsers to ignore installing
+			-- v1.0 API: setup only takes install_dir
+			require("nvim-treesitter").setup({
+				install_dir = vim.fn.stdpath("data") .. "/site",
+			})
 
-				highlight = {
-					enable = true, -- Enable syntax highlighting
-					additional_vim_regex_highlighting = false,
-				},
-				indent = {
-					enable = true, -- Enable smart indentation
-				},
+			-- Install parsers using v1.0 API
+			require("nvim-treesitter").install({
+				"lua",
+				"python",
+				"javascript",
+				"typescript",
+				"html",
+				"css",
+				"go",
+				"gomod",
+				"gosum",
+				"php",
+				"sql",
+				"svelte",
+				"terraform",
+			})
 
-				-- This is technically optional but helps with type checking
-				modules = {},
+			-- Enable treesitter highlighting for all buffers
+			vim.api.nvim_create_autocmd("FileType", {
+				callback = function()
+					pcall(vim.treesitter.start)
+				end,
 			})
 		end,
 	},
@@ -615,6 +612,7 @@ require("lazy").setup({
 					"ruff",
 					"ruff-lsp",
 					"sqls",
+					"svelte-language-server",
 					"terraform-ls",
 					"tflint",
 					"phpactor",
@@ -714,6 +712,7 @@ require("lazy").setup({
 					typescript = { "prettier" },
 					javascriptreact = { "prettier" },
 					typescriptreact = { "prettier" },
+					svelte = { "prettier" },
 					json = { "prettier" },
 					css = { "prettier" },
 					html = { "prettier" },
@@ -1196,6 +1195,26 @@ require("lazy").setup({
 					capabilities = require("cmp_nvim_lsp").default_capabilities(),
 				}
 				vim.lsp.enable("terraformls")
+
+				-- Svelte LSP
+				vim.lsp.config.svelte = {
+					cmd = { "svelteserver", "--stdio" },
+					filetypes = { "svelte" },
+					root_markers = { "svelte.config.js", "svelte.config.ts", "package.json", ".git" },
+					capabilities = require("cmp_nvim_lsp").default_capabilities(),
+					settings = {
+						svelte = {
+							plugin = {
+								svelte = {
+									compilerWarnings = {
+										["css-unused-selector"] = "ignore",
+									},
+								},
+							},
+						},
+					},
+				}
+				vim.lsp.enable("svelte")
 			end)
 
 			if not ok then
