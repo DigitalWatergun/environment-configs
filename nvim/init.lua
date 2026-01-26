@@ -1,7 +1,7 @@
 -- PLACE THIS FILE IN YOUR CONFIG FOLDER: ~/.config/nvim/init.lua
 --
 -- CORE REQUIREMENTS
--- brew install ripgrep git make
+-- brew install ripgrep git make tree-sitter-cli
 --
 -- Then add languages as you use them:
 -- brew install python3       # When you work on Python projects
