@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# List of session names
+# Format: "session_name:path"
 sessions=(
-    "general"
+    "general:~/Documents"
 )
 
 # Create each session in detached mode
-for session in "${sessions[@]}"; do
-    # Check if session already exists
+for entry in "${sessions[@]}"; do
+    session="${entry%%:*}"
+    path="${entry#*:}" # "general:~/Documents" becomes "~/Documents"
+    path="${path/#\~/$HOME}" # "~/Documents" becomes "/Users/{user}/Documents"
+
     if tmux has-session -t "$session" 2>/dev/null; then
         echo "Session '$session' already exists, skipping..."
     else
-        tmux new-session -d -s "$session"
-        echo "Created session: $session"
+        tmux new-session -d -s "$session" -c "$path"
+        echo "Created session: $session (in $path)"
     fi
 done
 
