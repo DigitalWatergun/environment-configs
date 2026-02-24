@@ -531,6 +531,8 @@ require("lazy").setup({
 				"sql",
 				"svelte",
 				"terraform",
+				"markdown",
+				"markdown_inline",
 			})
 
 			-- Enable treesitter highlighting for all buffers
