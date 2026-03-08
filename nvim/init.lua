@@ -57,7 +57,9 @@ end
 vim.api.nvim_create_autocmd("VimLeavePre", {
 	callback = function()
 		-- Close NvimTree before saving session so it doesn't break restore
-		pcall(vim.cmd, "NvimTreeClose")
+		pcall(function()
+			vim.cmd("NvimTreeClose")
+		end)
 		for _, buf in ipairs(vim.api.nvim_list_bufs()) do
 			if vim.bo[buf].buflisted and vim.api.nvim_buf_get_name(buf) ~= "" then
 				vim.cmd("mksession! " .. vim.fn.fnameescape(session_file()))
