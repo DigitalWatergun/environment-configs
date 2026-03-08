@@ -47,6 +47,35 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
 	end,
 })
 
+-- Auto-save/restore sessions per directory, stored in /tmp (won't survive reboot)
+local function session_file()
+	local cwd = vim.fn.getcwd()
+	local hash = vim.fn.sha256(cwd):sub(1, 16)
+	return "/tmp/nvim_session_" .. hash .. ".vim"
+end
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+	callback = function()
+		-- Close NvimTree before saving session so it doesn't break restore
+		pcall(vim.cmd, "NvimTreeClose")
+		for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+			if vim.bo[buf].buflisted and vim.api.nvim_buf_get_name(buf) ~= "" then
+				vim.cmd("mksession! " .. vim.fn.fnameescape(session_file()))
+				return
+			end
+		end
+	end,
+})
+
+vim.api.nvim_create_autocmd("VimEnter", {
+	nested = true,
+	callback = function()
+		if vim.fn.argc() == 0 and vim.fn.filereadable(session_file()) == 1 then
+			vim.cmd("source " .. vim.fn.fnameescape(session_file()))
+		end
+	end,
+})
+
 -- This section automatically downloads and installs lazy.nvim if it's not already present
 -- Think of this as ensuring the "app store" is installed before we try to download apps
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
