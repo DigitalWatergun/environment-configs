@@ -16,10 +16,6 @@ source $ZSH/oh-my-zsh.sh
 ## User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
-export NVM_DIR="$HOME/.nvm"
-    [ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ] && \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" # This loads nvm
-    [ -s "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm" ] && \. "$HOMEBREW_PREFIX/opt/nvm/etc/bash_completion.d/nvm"
-
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
@@ -27,9 +23,23 @@ export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 export PATH="/opt/homebrew/opt/node@16/bin:$PATH"
 export PATH="/opt/homebrew/opt/mysql-client@8.4/bin:$PATH"
 
+# Lazy-load nvm: only initializes when you first call nvm, node, npm, or npx
 export NVM_DIR="$HOME/.nvm"
-[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"      # loads nvm
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # loads nvm bash_completion
+# Add default nvm node to PATH so p10k detects it without loading nvm
+NVM_DEFAULT_ALIAS="$(cat "$NVM_DIR/alias/default" 2>/dev/null)"
+if [[ -n "$NVM_DEFAULT_ALIAS" ]]; then
+  DEFAULT_NODE_DIR=("$NVM_DIR/versions/node/v${NVM_DEFAULT_ALIAS}"*(N[1]))
+  [[ -d "$DEFAULT_NODE_DIR/bin" ]] && export PATH="$DEFAULT_NODE_DIR/bin:$PATH"
+fi
+nvm() {
+  unfunction nvm node npm npx 2>/dev/null
+  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
+  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+  nvm "$@"
+}
+node() { nvm --version >/dev/null 2>&1; unfunction node 2>/dev/null; command node "$@"; }
+npm() { nvm --version >/dev/null 2>&1; unfunction npm 2>/dev/null; command npm "$@"; }
+npx() { nvm --version >/dev/null 2>&1; unfunction npx 2>/dev/null; command npx "$@"; }
 
 
 # The next line gives vim-style command line editing where you can press Esc to enter normal mode and use vim navigation commands
