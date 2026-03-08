@@ -517,7 +517,8 @@ require("lazy").setup({
 			})
 
 			-- Install parsers using v1.0 API
-			require("nvim-treesitter").install({
+			local parser_dir = vim.fn.stdpath("data") .. "/site/parser"
+			local wanted = {
 				"lua",
 				"python",
 				"javascript",
@@ -533,7 +534,18 @@ require("lazy").setup({
 				"terraform",
 				"markdown",
 				"markdown_inline",
-			})
+			}
+
+			local missing = {}
+			for _, lang in ipairs(wanted) do
+				if vim.fn.filereadable(parser_dir .. "/" .. lang .. ".so") == 0 then
+					table.insert(missing, lang)
+				end
+			end
+
+			if #missing > 0 then
+				require("nvim-treesitter").install(missing)
+			end
 
 			-- Enable treesitter highlighting for all buffers
 			vim.api.nvim_create_autocmd("FileType", {
