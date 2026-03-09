@@ -46,7 +46,7 @@ npx() { nvm --version >/dev/null 2>&1; unfunction npx 2>/dev/null; command npx "
 bindkey -v
 
 # The following lines have been added by Docker Desktop to enable Docker CLI completions.
-fpath=(/Users/pduong/.docker/completions $fpath)
+fpath=($HOME/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
 

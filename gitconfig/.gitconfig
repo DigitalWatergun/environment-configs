@@ -1,7 +1,7 @@
 # This is Git's per-user configuration file.
 # Need to brew install fzf for dirdiff and mergetool
 [user]
-	email = digitalwatergun@gmail.com
+	email = 78324201+DigitalWatergun@users.noreply.github.com
 	name = DigitalWatergun 
 [credential]
 	helper = osxkeychain
