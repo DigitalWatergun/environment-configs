@@ -1612,6 +1612,7 @@ require("lazy").setup({
 						},
 						{
 							"filename",
+							path = 1,
 							color = { fg = "#ffffff", bg = dark_gray },
 							padding = { left = 1, right = 1 },
 						},
