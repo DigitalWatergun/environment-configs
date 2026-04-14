@@ -12,6 +12,11 @@
 --
 -- Install global eslint
 -- npm install -g eslint
+--
+-- Updpate the path directory for your Obsidian vault
+-- local candidates = {
+--				"~/Documents/code_repo/personal/obsidian-vault",
+--			}
 
 vim.g.loaded_netrw = 1 -- fully disable netrw for nvim-tree
 vim.g.loaded_netrwPlugin = 1
@@ -1655,6 +1660,34 @@ require("lazy").setup({
 		end,
 		cmd = { "DirDiff", "DirDiffVim" },
 	},
+
+	-- Obsidian
+	{
+		"epwalsh/obsidian.nvim",
+		version = "*",
+		ft = "markdown",
+		dependencies = { "nvim-lua/plenary.nvim" },
+		opts = function()
+			local candidates = {
+				"~/Documents/code_repo/personal/obsidian-vault",
+			}
+			local vault_path
+			for _, p in ipairs(candidates) do
+				local expanded = vim.fn.expand(p)
+				if vim.fn.isdirectory(expanded) == 1 then
+					vault_path = expanded
+					break
+				end
+			end
+			return {
+				workspaces = {
+					{ name = "vault", path = vault_path or vim.fn.expand("~") },
+				},
+				ui = { enable = false },
+				disable_frontmatter = true,
+			}
+		end,
+	},
 }, {
 	performance = {
 		rtp = {
@@ -1671,6 +1704,24 @@ require("lazy").setup({
 			},
 		},
 	},
+})
+
+-- Obsidian wikilink follow on gd/gv/gt
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = "markdown",
+	callback = function()
+		vim.keymap.set("n", "gd", "<cmd>ObsidianFollowLink<cr>", { buffer = true, desc = "Follow wikilink" })
+		vim.keymap.set(
+			"n",
+			"gv",
+			"<cmd>ObsidianFollowLink vsplit<cr>",
+			{ buffer = true, desc = "Follow wikilink in vertical split" }
+		)
+		vim.keymap.set("n", "gt", function()
+			vim.cmd("tab split")
+			vim.cmd("ObsidianFollowLink")
+		end, { buffer = true, desc = "Follow wikilink in new tab" })
+	end,
 })
 
 -- Overwrite tab space for Python
