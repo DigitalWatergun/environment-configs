@@ -1426,7 +1426,7 @@ require("lazy").setup({
 				local client_names = {}
 				for _, client in ipairs(clients) do
 					table.insert(client_names, client.name)
-					vim.lsp.stop_client(client.id)
+					client:stop()
 				end
 
 				print("Stopped: " .. table.concat(client_names, ", "))
